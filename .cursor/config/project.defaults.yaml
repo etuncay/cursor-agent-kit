@@ -1,0 +1,257 @@
+# Project defaults & intake schema
+# Agents: read this FIRST, then infer repo + prompt, then AskQuestion for gaps.
+# Override per repo by editing values below (commit to git for team standards).
+
+version: 1
+
+# ---------------------------------------------------------------------------
+# Locale — question labels, chat, plans, code
+# ---------------------------------------------------------------------------
+locale:
+  chat: turkish                    # language for replies to the user
+  plan: english                    # language for .cursor/plans/*.md and briefs
+  ask_question_labels: english     # AskQuestion option labels shown to user
+  code: english                    # identifiers, file names, JSON keys
+  code_comments: english           # business-logic comments in source
+  i18n_default_locale: en          # default UI locale file (e.g. en.json)
+
+# ---------------------------------------------------------------------------
+# Architecture — how the system is split
+# ---------------------------------------------------------------------------
+architecture:
+  default: fullstack-separated     # see options.id below
+  # fullstack-separated | frontend-only | backend-only | monolith | mobile-bff
+
+  frontend:
+    enabled: true
+    default_language: typescript
+    default_framework: react
+    default_platform: web-spa
+
+  backend:
+    enabled: true
+    default_language: csharp-dotnet
+    default_framework: aspnet-core
+    default_platform: backend-api
+    default_api_style: rest          # rest | graphql | grpc | minimal
+
+  monorepo:
+    default: false                   # true if single repo with apps/* or packages/*
+    default_tool: pnpm               # pnpm | npm | yarn | bun | dotnet-sln
+
+# ---------------------------------------------------------------------------
+# Standard defaults (used when not inferred and user did not specify)
+# ---------------------------------------------------------------------------
+defaults:
+  work_type: new-feature
+  scope: single-module
+  data_source: mock-api-msw
+  deliverable: plan-then-code
+
+  frontend:
+    ui_approach: component-library
+    component_library: shadcn-radix
+    css_stack: tailwind
+    aesthetic: minimal
+    theme: system
+    interaction: low
+    a11y: baseline-a11y
+
+  backend:
+    auth: jwt-session
+    database: none                   # none | postgres | sqlite | sqlserver | mongo | defer
+    orm: defer                       # ef-core | prisma | drizzle | defer
+
+  shared:
+    i18n: single-en
+    verification: browser-mcp
+    ci_cd: lint-test-only
+
+# ---------------------------------------------------------------------------
+# Intake behavior
+# ---------------------------------------------------------------------------
+intake:
+  config_path: .cursor/config/project.defaults.yaml
+  brief_output: .cursor/plans/_briefs/{slug}.brief.md
+  plan_output: .cursor/plans/features/{slug}.plan.md
+
+  # Resolution order for each field (first non-empty wins):
+  resolution_order:
+    - user_prompt
+    - repo_signals
+    - this_config_defaults
+    - ask_question
+
+  max_ask_rounds: 2
+  ask_when_missing: true             # if false, silently use defaults (not recommended for greenfield)
+
+  # Fields that MUST have a value before plan/code (agent asks if still missing)
+  required_before_plan:
+    - work_type
+    - architecture
+    - scope
+    - data_source
+    - deliverable
+
+  required_before_code:
+    - work_type
+    - architecture
+    - scope
+    - data_source
+    - deliverable
+    - frontend.language          # when architecture.frontend.enabled
+    - frontend.framework
+    - backend.language           # when architecture.backend.enabled
+    - backend.framework
+
+# ---------------------------------------------------------------------------
+# Field catalog — drives AskQuestion rounds (IDs match intake-canonical-options)
+# ---------------------------------------------------------------------------
+fields:
+  # --- Round 1: blockers ---
+  - id: work_type
+    round: 1
+    required: true
+    ask_label: What kind of work is this?
+
+  - id: architecture
+    round: 1
+    required: true
+    ask_label: How is the project structured?
+    options:
+      - id: fullstack-separated
+        label: Full stack — separate frontend + backend
+      - id: frontend-only
+        label: Frontend only
+      - id: backend-only
+        label: Backend / API only
+      - id: monolith
+        label: Monolith (e.g. Next.js full-stack, Rails)
+      - id: mobile-bff
+        label: Mobile app + backend API
+
+  - id: scope
+    round: 1
+    required: true
+
+  - id: data_source
+    round: 1
+    required: true
+
+  - id: deliverable
+    round: 1
+    required: true
+
+  # --- Round 1b: languages (when architecture needs them) ---
+  - id: frontend.language
+    round: 1
+    required_when:
+      architecture: [fullstack-separated, frontend-only, monolith, mobile-bff]
+    maps_to: language              # fallback single language if no split
+    ask_label: Frontend language
+
+  - id: frontend.framework
+    round: 1
+    required_when:
+      architecture: [fullstack-separated, frontend-only, monolith, mobile-bff]
+    ask_label: Frontend framework
+    filter_by: frontend.language
+
+  - id: frontend.platform
+    round: 1
+    required_when:
+      architecture: [fullstack-separated, frontend-only, monolith, mobile-bff]
+    ask_label: Frontend platform
+
+  - id: backend.language
+    round: 1
+    required_when:
+      architecture: [fullstack-separated, backend-only, mobile-bff]
+    ask_label: Backend language
+
+  - id: backend.framework
+    round: 1
+    required_when:
+      architecture: [fullstack-separated, backend-only, mobile-bff]
+    ask_label: Backend framework
+
+  - id: backend.api_style
+    round: 1
+    required_when:
+      architecture: [fullstack-separated, backend-only, mobile-bff]
+    ask_label: API style
+    options:
+      - id: rest
+        label: REST / OpenAPI
+      - id: graphql
+        label: GraphQL
+      - id: grpc
+        label: gRPC
+      - id: minimal
+        label: Minimal / RPC-style
+
+  - id: backend.database
+    round: 1
+    required_when:
+      data_source: [build-backend, real-db-seed]
+    ask_label: Database
+
+  # --- Round 2: UI (frontend enabled + visual platform) ---
+  - id: ui_approach
+    round: 2
+    required_when:
+      architecture: [fullstack-separated, frontend-only, monolith, mobile-bff]
+
+  - id: component_library
+    round: 2
+
+  - id: css_stack
+    round: 2
+
+  - id: aesthetic
+    round: 2
+
+  - id: theme
+    round: 2
+
+  - id: interaction
+    round: 2
+
+  - id: a11y
+    round: 2
+
+  # --- Round 3: ops / cross-cutting ---
+  - id: auth
+    round: 3
+
+  - id: i18n
+    round: 3
+
+  - id: verification
+    round: 3
+
+  - id: ci_cd
+    round: 3
+
+  - id: monorepo.tool
+    round: 3
+    required_when:
+      scope: [multi-module, full-app-mvp, full-app-v1]
+
+# ---------------------------------------------------------------------------
+# Repo signal hints (agent infer — not user-facing)
+# ---------------------------------------------------------------------------
+repo_signals:
+  package.json: nodejs
+  typescript in package.json: frontend.language=typescript
+  react in package.json: frontend.framework=react
+  next in package.json: frontend.framework=next; frontend.platform=web-ssr
+  vite in package.json: frontend.platform=web-spa
+  vue in package.json: frontend.framework=vue
+  "*.csproj": backend.language=csharp-dotnet
+  pyproject.toml: backend.language=python
+  go.mod: backend.language=go
+  apps/: monorepo.default=true
+  pnpm-workspace.yaml: monorepo.tool=pnpm
+  tailwind.config.*: css_stack=tailwind
+  openapi.yaml: data_source=existing-api

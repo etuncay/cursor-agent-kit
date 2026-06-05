@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-detect-stack.sh"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": ".cursor/hooks/classify-work-intent.sh"
+      },
+      {
+        "command": ".cursor/hooks/intake-gate.sh"
+      },
+      {
+        "command": ".cursor/hooks/skill-router.sh",
+        "matcher": ".*"
+      }
+    ]
+  }
+}

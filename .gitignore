@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+*.swp
+
+# Generated per-project (keep in consumer repo, not in template updates)
+# Uncomment if you track consumer projects inside this repo:
+# .cursor/plans/_briefs/*.brief.md
+# .cursor/plans/features/*.plan.md
+# .cursor/plans/design-*.plan.md
