@@ -83,6 +83,18 @@ mkdir "%DEST%\plans\features" 2>nul
 type nul > "%DEST%\plans\_briefs\.gitkeep" 2>nul
 type nul > "%DEST%\plans\features\.gitkeep" 2>nul
 
+REM Scaffold user_test seed (screen-test docs). Refresh kit-owned templates;
+REM never clobber generated per-app docs (README/index seeded only if absent).
+set "USER_TEST_SRC=%SCRIPT_DIR%\user_test"
+set "USER_TEST_DEST=%TARGET%\user_test"
+if exist "%USER_TEST_SRC%\" (
+  mkdir "%USER_TEST_DEST%\_templates" 2>nul
+  robocopy "%USER_TEST_SRC%\_templates" "%USER_TEST_DEST%\_templates" /E /NFL /NDL /NJH /NJS /nc /ns /np /XD .DS_Store >nul
+  if not exist "%USER_TEST_DEST%\README.md" copy "%USER_TEST_SRC%\README.md" "%USER_TEST_DEST%\README.md" >nul
+  if not exist "%USER_TEST_DEST%\index.md" copy "%USER_TEST_SRC%\index.md" "%USER_TEST_DEST%\index.md" >nul
+  echo Scaffolded user_test\ -^> %USER_TEST_DEST% ^(templates refreshed^)
+)
+
 echo Done.
 echo Next: edit %DEST%\config\project.defaults.yaml ^(locale.chat, architecture, defaults^)
 echo Note: hooks use .sh scripts — Git Bash or WSL recommended; Cursor on Windows often runs them via bundled shell.

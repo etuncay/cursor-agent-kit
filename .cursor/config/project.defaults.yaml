@@ -66,6 +66,7 @@ defaults:
     i18n: single-en
     verification: browser-mcp
     ci_cd: lint-test-only
+    screen_test_docs: auto           # auto | on-request | off — per-screen test md under user_test/<app>/
 
 # ---------------------------------------------------------------------------
 # Intake behavior

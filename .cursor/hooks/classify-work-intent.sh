@@ -60,6 +60,13 @@ EOF
   exit 0
 fi
 
+if echo "$lower" | grep -qE 'ekran testi|ekran test|screen test|test dökümanı|test dokumani|test docs|smoke test|user_test|uçtan uca test|e2e ekran'; then
+  cat <<'EOF'
+{"additional_context": "[Work Intent: SCREEN_TEST] screen-test-protocol skill. If dev server up, auto-test via cursor-ide-browser (login/click/fill/create/edit/delete); write per-screen docs under user_test/<app>/processes/. Skill: .cursor/skills/screen-test-protocol/SKILL.md"}
+EOF
+  exit 0
+fi
+
 if echo "$lower" | grep -qE '\bfix\b|bug|hata|refactor|düzelt'; then
   echo '{}'
   exit 0

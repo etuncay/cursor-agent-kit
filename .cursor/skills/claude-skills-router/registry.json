@@ -27,6 +27,12 @@
       "skillPath": ".cursor/skills/implementation-plan/SKILL.md"
     },
     {
+      "id": "screen-test-protocol",
+      "priority": 88,
+      "match": "ekran testi|ekran test|screen test|test dökümanı|test dokumani|test docs|smoke test|user_test|uçtan uca test|e2e ekran",
+      "skillPath": ".cursor/skills/screen-test-protocol/SKILL.md"
+    },
+    {
       "id": "design-intake",
       "priority": 85,
       "match": "tasarım|mockup|prototype|wireframe|ui oluştur|redesign|güzel yap|design",

@@ -73,5 +73,17 @@ if compgen -G "${DEST}/hooks/"'*.sh' > /dev/null; then
   chmod +x "${DEST}/hooks/"*.sh
 fi
 
+# Scaffold user_test seed (screen-test docs). Refresh kit-owned templates;
+# never clobber generated per-app docs (README/index only seeded if absent).
+USER_TEST_SRC="${SCRIPT_DIR}/user_test"
+USER_TEST_DEST="${TARGET}/user_test"
+if [[ -d "$USER_TEST_SRC" ]]; then
+  mkdir -p "${USER_TEST_DEST}/_templates"
+  rsync -a --exclude='.DS_Store' "${USER_TEST_SRC}/_templates/" "${USER_TEST_DEST}/_templates/"
+  [[ -f "${USER_TEST_DEST}/README.md" ]] || cp "${USER_TEST_SRC}/README.md" "${USER_TEST_DEST}/README.md"
+  [[ -f "${USER_TEST_DEST}/index.md" ]]  || cp "${USER_TEST_SRC}/index.md"  "${USER_TEST_DEST}/index.md"
+  echo "Scaffolded user_test/ → ${USER_TEST_DEST} (templates refreshed)"
+fi
+
 echo "Done."
 echo "Next: edit ${DEST}/config/project.defaults.yaml (locale.chat, architecture, defaults)"

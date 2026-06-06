@@ -11,7 +11,7 @@ Project-agnostic agent instructions: **infer → AskQuestion → brief → plan 
 |--------|---------|
 | [config/](config/) | **Project defaults** — locale, architecture, frontend/backend stack, intake rules |
 | [rules/](rules/) | Intake workflow, guidelines, quality standards |
-| [skills/](skills/) | project-intake, design-intake, implementation-plan, module-scaffolder, … |
+| [skills/](skills/) | project-intake, design-intake, implementation-plan, module-scaffolder, screen-test-protocol, … |
 | [skills/claude-skills-router/registry.json](skills/claude-skills-router/registry.json) | Hook skill priority table |
 | [hooks/](hooks/) | Stack detect, intent classify, intake gate, skill router |
 | [plans/_briefs/](plans/_briefs/) | Approved brief files (`*.brief.md`) |
@@ -40,6 +40,7 @@ Prompt → sessionStart (stack signals + config hint)
 | "Scaffold a new module" | module-scaffolder (brief required) |
 | "Implement the plan" | Implement mode; intake skipped |
 | "skip intake" | Continue without brief (user responsibility) |
+| "Ekran testi yap" / "screen test" | screen-test-protocol: auto browser test + per-screen docs under `user_test/<app>/` |
 
 ## Hooks
 
@@ -61,3 +62,4 @@ chmod +x .cursor/hooks/*.sh
 - Question matrix: [intake-canonical-options.md](plans/_shared/intake-canonical-options.md)
 - Main workflow: [project-intake-workflow.mdc](rules/project-intake-workflow.mdc)
 - Verification: [verification.md](plans/_shared/verification.md)
+- Screen testing: [screen-test-protocol/SKILL.md](skills/screen-test-protocol/SKILL.md) · [screen-test-docs.mdc](rules/screen-test-docs.mdc) → output in sibling `user_test/`
