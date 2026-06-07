@@ -2,6 +2,8 @@
 
 Central defaults for agents. Edit [`project.defaults.yaml`](project.defaults.yaml) to set team standards; agents merge config → repo inference → user prompt → `AskQuestion` for gaps.
 
+AskQuestion field catalog (rounds, `required_when`): [`project.intake-fields.yaml`](project.intake-fields.yaml) — read during intake only, not every session.
+
 ## Resolution order
 
 1. **User prompt** — explicit choices win
@@ -11,17 +13,18 @@ Central defaults for agents. Edit [`project.defaults.yaml`](project.defaults.yam
 
 ## Key sections
 
-| Section | Purpose |
-|---------|---------|
-| `locale` | Chat, plan, AskQuestion label, and code languages |
-| `architecture` | Frontend/backend split, default languages & frameworks |
-| `defaults` | Fallback values when nothing else is known |
-| `intake` | Required fields, brief/plan paths, ask behavior |
-| `fields` | Full intake catalog with rounds and conditional `required_when` |
+| File | Section | Purpose |
+|------|---------|---------|
+| `project.defaults.yaml` | `locale` | Chat, plan, AskQuestion label, and code languages |
+| | `architecture` | Frontend/backend split, default languages & frameworks |
+| | `defaults` | Fallback values when nothing else is known |
+| | `intake` | Required fields, brief/plan paths, ask behavior |
+| | `repo_signals` | Repo inference hints |
+| `project.intake-fields.yaml` | `fields` | Full intake catalog with rounds and conditional `required_when` |
 
 ## Option IDs
 
-Multiple-choice IDs for shared fields live in [../plans/_shared/intake-canonical-options.md](../plans/_shared/intake-canonical-options.md). Config-only fields (`architecture`, `backend.api_style`, `backend.database`) are defined in the YAML `fields` section.
+Multiple-choice IDs for shared fields live in [../plans/_shared/intake-canonical-options.md](../plans/_shared/intake-canonical-options.md). Config-only fields (`architecture`, `backend.api_style`, `backend.database`) are defined in `project.intake-fields.yaml`.
 
 ## Brief output
 

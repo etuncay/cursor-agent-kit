@@ -1,20 +1,10 @@
 ---
-description: Output language split for chat, plans, and code. Configurable per project.
-alwaysApply: true
+description: Locale rules merged into core.mdc. Full reference on demand.
+alwaysApply: false
 ---
 
-# Output locale
+# Output locale (stub)
 
-| Artifact | Language |
-|----------|----------|
-| Chat replies to the user | **English** (default) |
-| Plan files (`.cursor/plans/**/*.plan.md`, `*.brief.md`) — title, overview, sections, todo `content` | **English** |
-| Brief tables and AskQuestion option labels | **English** |
-| Code — identifiers, types, file names, JSON field keys | **English** |
-| Code comments (business logic) | **English** |
-| i18n UI string values (non-default locale files) | **Match target locale** |
-| `.cursor` instruction files (rules, skills) | **English** |
-
-Override: if user explicitly requests another language for chat, match user for that session.
+**Canonical:** [core.mdc](core.mdc) — locale table inline.
 
 Full reference: [output-locale.md](../plans/_shared/output-locale.md) and [project.defaults.yaml](../config/project.defaults.yaml) `locale.*`.

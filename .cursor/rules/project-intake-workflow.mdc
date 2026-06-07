@@ -1,104 +1,23 @@
 ---
-description: Generic project intake — infer, AskQuestion, brief, plan, skill route. Always-on orchestrator.
-alwaysApply: true
+description: On-demand intake orchestrator — infer, AskQuestion, brief, plan, skill route. Loaded via hooks or greenfield/plan/design prompts.
+alwaysApply: false
 ---
 
-# Project Intake Workflow
+# Project intake workflow
 
-Project-agnostic requirement gathering: infer-first brief intake, then plan/implement separation.
+Infer-first brief intake, then plan/implement separation. **Full steps:** [project-intake/SKILL.md](../skills/project-intake/SKILL.md).
 
-## When this applies
+## When required
 
-**REQUIRED** when the request includes:
-- greenfield, new project, new agent, new feature without approved brief
-- create plan / implementation plan (when brief is missing)
-- design, mockup, UI, theme, redesign
-- scaffold, new module, add feature
+Greenfield, new feature without brief, create plan, design/mockup, scaffold — unless: implement-plan, scoped fix/refactor, `skip intake`, or matching brief exists in `.cursor/plans/_briefs/`.
 
-**SKIP** when:
-- implement the plan (existing plan reference)
-- trivial bugfix/refactor with explicit scope
-- user says "skip intake"
-- `.cursor/plans/_briefs/*.brief.md` exists and covers current work
+## Flow
 
-## Step 0 — Load config, then infer
+1. Read [project.defaults.yaml](../config/project.defaults.yaml) + [project.intake-fields.yaml](../config/project.intake-fields.yaml)
+2. Infer: user prompt → repo signals → config defaults → AskQuestion for gaps
+3. Save brief: `.cursor/plans/_briefs/{slug}.brief.md` ([template](../plans/_templates/project-brief.template.md))
+4. Route skill: design → [design-intake](../skills/design-intake/SKILL.md); plan → [implementation-plan](../skills/implementation-plan/SKILL.md); scaffold → [module-scaffolder](../skills/module-scaffolder/SKILL.md)
+5. Plan: `.cursor/plans/features/{slug}.plan.md` — get approval before code
+6. Implement: plan body read-only; only `todos[].status`; verify per [verification.md](../plans/_shared/verification.md)
 
-1. Read [`.cursor/config/project.defaults.yaml`](../config/project.defaults.yaml) — team defaults (locale, architecture, frontend/backend languages, UI stack).
-2. Apply `locale.*` for chat/plan/AskQuestion labels unless user overrides in prompt.
-3. Pre-fill brief fields from `defaults.*` and `architecture.*` where not yet set.
-4. Infer from **user prompt** and **repo** (see `repo_signals` in config YAML).
-
-Resolution order (first wins): **user prompt → repo signals → config defaults → AskQuestion**.
-
-Do **not** re-ask fields already set by config, inference, or prompt.
-
-## Step 0b — Infer (repo + prompt)
-
-| Signal | Inferred field |
-|--------|----------------|
-| `package.json` + `typescript` | frontend.language: typescript |
-| `react-native` / `expo` | frontend.platform: mobile-cross |
-| `next` in deps | frontend.platform: web-ssr, frontend.framework: next |
-| `vite` + `react` | frontend.platform: web-spa, frontend.framework: react |
-| `*.csproj` | backend.language: csharp-dotnet |
-| `tailwind.config.*` | css_stack: tailwind |
-| `bootstrap` in deps | css_stack: bootstrap-css |
-| `apps/` monorepo | scope hint: multi-module; monorepo.tool from lockfile |
-| `docs/` specs | reference: spec-docs |
-| OpenAPI / `swagger` | data_source: existing-api |
-
-## Step 1 — AskQuestion (missing required fields only)
-
-**Required:** use `AskQuestion` for every missing field listed in config `intake.required_before_plan` (and UI/architecture conditionals in `fields[]`). No free-text questionnaire dumps.
-
-Rules:
-- Label language: `locale.ask_question_labels` from config (default English).
-- Batch missing questions in **one** `AskQuestion` call per round (max `intake.max_ask_rounds`, default 2).
-- Each question: **2–6 concrete options**; stable IDs in English kebab-case.
-- Catalog: [intake-canonical-options.md](../plans/_shared/intake-canonical-options.md) + config `fields[]` for architecture/backend splits.
-- Full flow: [project-intake/SKILL.md](../skills/project-intake/SKILL.md)
-
-**Round 1:** work_type, architecture, scope, data_source, deliverable, frontend/backend language & framework when architecture requires them.
-
-**Round 2** (frontend enabled): ui_approach, component_library, css_stack, aesthetic, theme, interaction, a11y.
-
-**Round 3:** auth, i18n, verification, ci_cd, backend.database (if building backend), monorepo.tool (if multi-module).
-
-Do not write code or feature plans while `intake.required_before_plan` fields are unknown.
-
-## Step 2 — Save brief
-
-Save to `.cursor/plans/_briefs/{slug}.brief.md` using [project-brief.template.md](../plans/_templates/project-brief.template.md).
-
-Record every value with Source = `prompt` | `inferred` | `config` | `user-mc`.
-
-## Step 3 — Route to skill
-
-| work_type / signal | Skill |
-|--------------------|-------|
-| greenfield, incomplete stack | [project-intake](../skills/project-intake/SKILL.md) |
-| design, mockup, UI | [design-intake](../skills/design-intake/SKILL.md) |
-| create plan (not implement) | [implementation-plan](../skills/implementation-plan/SKILL.md) |
-| scaffold, new module | [module-scaffolder](../skills/module-scaffolder/SKILL.md) |
-| implement plan | existing plan + [verification.md](../plans/_shared/verification.md) |
-
-Hook registry: `.cursor/skills/claude-skills-router/registry.json`
-
-## Step 4 — Create plan
-
-Save plan under `.cursor/plans/features/{slug}.plan.md` (or `design-{slug}.plan.md` for design-only) using [feature-plan.template.md](../plans/_templates/feature-plan.template.md).
-
-Embed **Brief (approved)** section from brief file.
-
-Show plan; get user approval before implementation — unless deliverable = `code-only` and all blockers were answered in MC round.
-
-## Step 5 — Implement policy
-
-During implement:
-- Plan **body is read-only**
-- Only YAML `todos[].status` may change (`pending` → `completed` | `cancelled`)
-- Verification per brief `verification` field and [verification.md](../plans/_shared/verification.md)
-
-## Step 6 — Progress
-
-After each completed todo: update plan YAML + brief summary to user in English.
+Registry: [registry.json](../skills/claude-skills-router/registry.json). Options: [intake-canonical-options.md](../plans/_shared/intake-canonical-options.md).

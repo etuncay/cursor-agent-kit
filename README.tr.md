@@ -12,18 +12,18 @@ Tek script ile herhangi bir projeye kurulur. Git'te bir kez yapılandırılır. 
 
 Yapı olmadan AI kod asistanları gereksinimleri atlar, planlama ile implementasyonu karıştırır ve tutarsız stack seçer. Bu kit somut artifact'ler ve otomasyonla bunu çözer:
 
-- **Koddan önce yapılandırılmış intake** — [project-intake-workflow.mdc](.cursor/rules/project-intake-workflow.mdc) ve [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md) repo sinyallerini çıkarır, yalnızca eksik alanları `AskQuestion` ile sorar, onaylı [brief'leri](.cursor/plans/_briefs/) kaydeder.
+- **Koddan önce yapılandırılmış intake** — [route-work.sh](.cursor/hooks/route-work.sh) greenfield/plan/tasarımda [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md)'i lazy yükler; repo sinyallerini çıkarır, yalnızca eksik alanları `AskQuestion` ile sorar, onaylı [brief'leri](.cursor/plans/_briefs/) kaydeder.
 - **Plan/implement ayrımı** — Implementasyon sırasında plan gövdesi salt okunur kalır; yalnızca `todos[].status` değişir ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
-- **Git'te takım standartları** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) locale, mimari, stack ve intake kurallarını tutar. Çözümleme sırası: **kullanıcı prompt'u → repo sinyalleri → config varsayılanları → AskQuestion**.
-- **Otomatik skill yönlendirme** — Hook'lar ve [registry.json](.cursor/skills/claude-skills-router/registry.json) niyeti eşleştirir (greenfield, tasarım, scaffold, API inceleme, secops vb.); her seferinde `@skill` yazmaya gerek kalmaz.
-- **Davranış korkulukları** — Her zaman açık kurallar: [cursor-guidelines.mdc](.cursor/rules/cursor-guidelines.mdc) (sadelik, cerrahi diff'ler), [quality-standards.mdc](.cursor/rules/quality-standards.mdc), [output-locale.mdc](.cursor/rules/output-locale.mdc).
+- **Git'te takım standartları** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) locale, mimari, stack ve intake kurallarını tutar; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) AskQuestion kataloğunu tutar (yalnızca intake'ta okunur). Çözümleme sırası: **kullanıcı prompt'u → repo sinyalleri → config varsayılanları → AskQuestion**.
+- **Otomatik skill yönlendirme** — [route-work.sh](.cursor/hooks/route-work.sh) ve [registry.json](.cursor/skills/claude-skills-router/registry.json) niyeti eşleştirir (greenfield, tasarım, scaffold, API inceleme, secops vb.); her seferinde `@skill` yazmaya gerek kalmaz.
+- **Davranış korkulukları** — Tek always-on kural [core.mdc](.cursor/rules/core.mdc) (~400 token); glob kurallar [quality-standards.mdc](.cursor/rules/quality-standards.mdc) yalnızca UI dosyalarında.
 - **Yerleşik doğrulama** — [verification.md](.cursor/plans/_shared/verification.md) implement yolunda hook'lar tarafından referans alınır.
 - **Otomatik ekran testi + döküman** — UI ekranı değiştiğinde [screen-test-protocol/SKILL.md](.cursor/skills/screen-test-protocol/SKILL.md) `cursor-ide-browser` ile test eder (giriş, tıklama, form doldur/sil/düzelt) ve `user_test/<app>/` altında ekran ekran test dökümanı yazar.
 - **Proje bağımsız** — Node, .NET, Python, Go ve monorepo'larda çalışır; stack oturum başında algılanır ([session-detect-stack.sh](.cursor/hooks/session-detect-stack.sh)).
 
 ## Nasıl çalışır?
 
-Hook'lar her prompt'tan önce bağlam enjekte eder. Kurallar her zaman geçerlidir. Skill'ler özelleşmiş iş akışlarını yürütür.
+Hook'lar niyet eşleştiğinde bağlam enjekte eder. Tek always-on kural (`core.mdc`). Skill'ler ihtiyaç halinde yüklenir.
 
 ```mermaid
 flowchart TD
@@ -31,20 +31,21 @@ flowchart TD
     SS[session-detect-stack.sh]
   end
   subgraph prompt [BeforeSubmitPrompt]
-    CI[classify-work-intent.sh]
-    IG[intake-gate.sh]
-    SR[skill-router.sh]
+    RW[route-work.sh]
   end
-  subgraph agent [Agent]
+  subgraph agent [Agent on demand]
     CFG[project.defaults.yaml]
+    FLD[project.intake-fields.yaml]
     INT[project-intake]
     BRIEF[plans/_briefs/*.brief.md]
     PLAN[plans/features/*.plan.md]
     CODE[App code]
   end
-  UserPrompt --> CI --> IG --> SR
-  SS --> CFG
-  SR --> INT
+  UserPrompt --> RW
+  SS --> UserPrompt
+  RW --> INT
+  INT --> CFG
+  INT --> FLD
   INT --> BRIEF
   BRIEF --> PLAN
   PLAN --> CODE
@@ -54,10 +55,12 @@ flowchart TD
 
 | Olay | Script | Etki |
 |------|--------|------|
-| `sessionStart` | `session-detect-stack.sh` | Repo stack sinyallerini enjekte eder |
-| `beforeSubmitPrompt` | `classify-work-intent.sh` | IMPLEMENT_PLAN / PLAN_ONLY / DESIGN / SCAFFOLD / GREENFIELD ayarlar |
-| `beforeSubmitPrompt` | `intake-gate.sh` | Greenfield/plan/tasarım için brief yoksa zorunlu kılar |
-| `beforeSubmitPrompt` | `skill-router.sh` | Registry'den eşleşen skill'i yükler |
+| `sessionStart` | `session-detect-stack.sh` | `[Stack:…]` repo sinyallerini enjekte eder (kısa) |
+| `beforeSubmitPrompt` | `log-task-start.sh` | Görev başlangıç zamanını `.cursor/logs/agent-activity.log`'a yazar + ekrana not |
+| `beforeSubmitPrompt` | `route-work.sh` | Niyet sınıflandırma + intake gate + skill router (3 eski hook'un yerine) |
+| `stop` | `log-task-end.sh` | Görev bitiş zamanı + süresini yazar |
+
+Aktivite logu her görevin başlangıç/bitiş zamanını ve süresini tutar. Token/maliyet bilgisi hook'lara **gelmez** — Cursor **Settings → Usage** veya mesaj başındaki göstergeden bakın.
 
 ## Hızlı başlangıç
 
@@ -139,8 +142,9 @@ Detaylar: [config/README.md](.cursor/config/README.md)
 
 | Yol | Rol |
 |-----|-----|
-| `config/` | Takım varsayılanları ve intake şeması |
-| `rules/*.mdc` | Her zaman açık agent davranışı |
+| `config/` | Takım varsayılanları + intake alan kataloğu |
+| `rules/core.mdc` | Tek always-on agent davranışı (~400 token) |
+| `rules/*.mdc` | Lazy/glob kurallar (intake workflow, kalite, ekran testi) |
 | `hooks/` + `hooks.json` | sessionStart + beforeSubmitPrompt otomasyonu |
 | `skills/` | Özelleşmiş iş akışları (intake, plan, tasarım, scaffold, secops, …) |
 | `plans/_briefs/` | Üretilen gereksinim brief'leri (proje bazlı) |

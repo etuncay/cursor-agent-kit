@@ -8,14 +8,16 @@
     ],
     "beforeSubmitPrompt": [
       {
-        "command": ".cursor/hooks/classify-work-intent.sh"
+        "command": ".cursor/hooks/log-task-start.sh"
       },
       {
-        "command": ".cursor/hooks/intake-gate.sh"
-      },
-      {
-        "command": ".cursor/hooks/skill-router.sh",
+        "command": ".cursor/hooks/route-work.sh",
         "matcher": ".*"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/log-task-end.sh"
       }
     ]
   }

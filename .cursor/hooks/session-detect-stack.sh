@@ -53,6 +53,6 @@ fi
 joined=$(IFS=, ; echo "${signals[*]:-unknown}")
 
 cat <<EOF
-{"additional_context": "[Project Intake] Load .cursor/config/project.defaults.yaml first (locale, architecture, defaults). Detected stack signals: ${joined}. Then infer brief; AskQuestion only for missing required fields."}
+{"additional_context": "[Stack:${joined}]"}
 EOF
 exit 0

@@ -1,0 +1,3 @@
+# Runtime agent activity logs — folder ships, contents do not
+*.log
+.task-start

@@ -1,71 +1,10 @@
 ---
-description: Karpathy-style coding discipline + Cursor tool/git safety. Think, simplify, surgical diffs, verify. Always-on.
-alwaysApply: true
+description: Canonical discipline text moved to core.mdc. Manual @cursor-guidelines reminder only.
+alwaysApply: false
 ---
 
-# Cursor Engineering Guidelines
+# Cursor guidelines (stub)
 
-Behavioral guardrails (Andrej Karpathy LLM coding discipline + Cursor extensions). **Tradeoff:** caution over speed; use judgment on trivial tasks.
+**Canonical:** [core.mdc](core.mdc) — `alwaysApply: true`.
 
-## 1. Think Before Coding
-
-Don't assume. Don't hide confusion. Surface tradeoffs.
-
-- State assumptions; if uncertain, ask.
-- Multiple interpretations → present them, don't pick silently.
-- Simpler approach exists → say so.
-- Unclear → stop, name confusion, ask.
-- Greenfield / new feature → run [project-intake-workflow](project-intake-workflow.mdc) before coding.
-
-## 2. Simplicity First
-
-Minimum code for the problem. Nothing speculative.
-
-- No extra features, single-use abstractions, unrequested config/flexibility.
-- No error handling for impossible scenarios.
-- 200 lines that could be 50 → rewrite.
-
-*Would a senior engineer call this overcomplicated?* If yes, simplify.
-
-## 3. Surgical Changes
-
-Touch only what you must. Clean up only your own mess.
-
-- Don't improve adjacent code/comments/formatting; don't refactor unbroken code.
-- Match existing style.
-- Unrelated dead code → mention, don't delete.
-- Remove only orphans **your** edit created; not pre-existing dead code unless asked.
-
-**Every changed line must trace to the user's request.**
-
-## 4. Goal-Driven Execution
-
-Define verifiable success criteria; loop until verified.
-
-- Fix → reproduce (test/signal), then pass.
-- UI/route/navigation change → verify per [verification.md](../plans/_shared/verification.md) when brief requires it.
-
-For multi-step tasks, state a brief plan:
-
-```text
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-## 5. Project Pointers
-
-- **Tools:** read/search/edit tools over shell hacks; shell for run/test/git.
-- **Git:** no commit/push/destructive ops unless user asks.
-- **Intake:** `.cursor/skills/project-intake/SKILL.md` for new work without brief.
-
-## 6. Communication
-
-Progress on long tasks; blockers with evidence; close with change + verification summary.
-
-## 7. Output locale
-
-Read [output-locale.md](../plans/_shared/output-locale.md). Chat and plans **English**; code **English**.
-
----
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+Do not duplicate content here. Read `core.mdc` for discipline, locale, and intake pointer.

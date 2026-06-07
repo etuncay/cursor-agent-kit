@@ -12,18 +12,18 @@ Install into any project with one script. Configure once in git. Every session i
 
 Without structure, AI coding assistants tend to skip requirements, mix planning with implementation, and pick inconsistent stacks. This kit addresses that with concrete artifacts and automation:
 
-- **Structured intake before code** — [project-intake-workflow.mdc](.cursor/rules/project-intake-workflow.mdc) and [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md) infer repo signals, ask only missing fields via `AskQuestion`, and save approved [briefs](.cursor/plans/_briefs/).
+- **Structured intake before code** — [route-work.sh](.cursor/hooks/route-work.sh) lazy-loads [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md) on greenfield/plan/design; infer repo signals, ask only missing fields via `AskQuestion`, save approved [briefs](.cursor/plans/_briefs/).
 - **Plan/implement separation** — During implementation the plan body stays read-only; only `todos[].status` changes ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
-- **Team standards in git** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) holds locale, architecture, stack, and intake rules. Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
-- **Automatic skill routing** — Hooks plus [registry.json](.cursor/skills/claude-skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, etc.) without typing `@skill` every time.
-- **Behavioral guardrails** — Always-on rules: [cursor-guidelines.mdc](.cursor/rules/cursor-guidelines.mdc) (simplicity, surgical diffs), [quality-standards.mdc](.cursor/rules/quality-standards.mdc), [output-locale.mdc](.cursor/rules/output-locale.mdc).
+- **Team standards in git** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) holds locale, architecture, stack, and intake rules; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) holds the AskQuestion catalog (loaded on intake only). Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
+- **Automatic skill routing** — [route-work.sh](.cursor/hooks/route-work.sh) plus [registry.json](.cursor/skills/claude-skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, etc.) without typing `@skill` every time.
+- **Behavioral guardrails** — Single always-on rule [core.mdc](.cursor/rules/core.mdc) (~400 tokens); glob rules [quality-standards.mdc](.cursor/rules/quality-standards.mdc) apply on UI files only.
 - **Verification built-in** — [verification.md](.cursor/plans/_shared/verification.md) is referenced on the implement path via hooks.
 - **Automatic screen testing + docs** — when a UI screen changes, [screen-test-protocol/SKILL.md](.cursor/skills/screen-test-protocol/SKILL.md) drives `cursor-ide-browser` (login, click, fill, create/edit/delete) and writes per-screen test docs under `user_test/<app>/`.
 - **Project-agnostic** — Works on Node, .NET, Python, Go, and monorepos; stack is detected at session start ([session-detect-stack.sh](.cursor/hooks/session-detect-stack.sh)).
 
 ## How it works
 
-Hooks inject context before each prompt. Rules always apply. Skills execute specialized workflows.
+Hooks inject context before each prompt when intent matches. One always-on rule (`core.mdc`). Skills execute specialized workflows on demand.
 
 ```mermaid
 flowchart TD
@@ -31,20 +31,21 @@ flowchart TD
     SS[session-detect-stack.sh]
   end
   subgraph prompt [BeforeSubmitPrompt]
-    CI[classify-work-intent.sh]
-    IG[intake-gate.sh]
-    SR[skill-router.sh]
+    RW[route-work.sh]
   end
-  subgraph agent [Agent]
+  subgraph agent [Agent on demand]
     CFG[project.defaults.yaml]
+    FLD[project.intake-fields.yaml]
     INT[project-intake]
     BRIEF[plans/_briefs/*.brief.md]
     PLAN[plans/features/*.plan.md]
     CODE[App code]
   end
-  UserPrompt --> CI --> IG --> SR
-  SS --> CFG
-  SR --> INT
+  UserPrompt --> RW
+  SS --> UserPrompt
+  RW --> INT
+  INT --> CFG
+  INT --> FLD
   INT --> BRIEF
   BRIEF --> PLAN
   PLAN --> CODE
@@ -54,10 +55,12 @@ flowchart TD
 
 | Event | Script | Effect |
 |-------|--------|--------|
-| `sessionStart` | `session-detect-stack.sh` | Injects repo stack signals |
-| `beforeSubmitPrompt` | `classify-work-intent.sh` | Sets IMPLEMENT_PLAN / PLAN_ONLY / DESIGN / SCAFFOLD / GREENFIELD |
-| `beforeSubmitPrompt` | `intake-gate.sh` | Requires brief for greenfield/plan/design when none exists |
-| `beforeSubmitPrompt` | `skill-router.sh` | Loads matching skill from registry |
+| `sessionStart` | `session-detect-stack.sh` | Injects `[Stack:…]` repo signals (compact) |
+| `beforeSubmitPrompt` | `log-task-start.sh` | Logs task start time to `.cursor/logs/agent-activity.log` + on-screen note |
+| `beforeSubmitPrompt` | `route-work.sh` | Intent classify + intake gate + registry skill route (replaces 3 legacy hooks) |
+| `stop` | `log-task-end.sh` | Logs task end time + duration |
+
+Activity log records start/end timestamps and duration per task. Token/cost usage is **not** available to hooks — view it in Cursor's **Settings → Usage** or the per-message indicator.
 
 ## Quick start
 
@@ -139,8 +142,9 @@ Details: [config/README.md](.cursor/config/README.md)
 
 | Path | Role |
 |------|------|
-| `config/` | Team defaults and intake schema |
-| `rules/*.mdc` | Always-on agent behavior |
+| `config/` | Team defaults + intake field catalog |
+| `rules/core.mdc` | Single always-on agent behavior (~400 tokens) |
+| `rules/*.mdc` | Lazy/glob rules (intake workflow, quality, screen tests) |
 | `hooks/` + `hooks.json` | sessionStart + beforeSubmitPrompt automation |
 | `skills/` | Specialized workflows (intake, plan, design, scaffold, secops, …) |
 | `plans/_briefs/` | Generated requirement briefs (per project) |
@@ -179,7 +183,7 @@ Not in the hook registry; invoke manually when needed:
 
 - `handoff` — compact conversation for session handoff
 - `mcp-server-builder` — scaffold MCP servers from OpenAPI
-- `cursor-guidelines` — discipline reminder (canonical text in rules)
+- `cursor-guidelines` — discipline reminder (canonical text in [core.mdc](.cursor/rules/core.mdc))
 
 ## Typical workflow
 

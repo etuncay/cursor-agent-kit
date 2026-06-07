@@ -1,17 +1,10 @@
 ---
-description: Load project.defaults.yaml for locale, architecture, and intake defaults before plan or greenfield work.
-alwaysApply: true
+description: Config loading merged into core.mdc. Read on greenfield/intake only.
+alwaysApply: false
 ---
 
-# Project config
+# Project config (stub)
 
-Before intake, planning, or greenfield implementation:
+**Canonical:** [core.mdc](core.mdc) — intake pointer.
 
-1. Read [`.cursor/config/project.defaults.yaml`](../config/project.defaults.yaml)
-2. Apply `locale.*` for chat, plans, and AskQuestion labels
-3. Pre-fill brief from `defaults.*` and `architecture.*`
-4. Ask only for fields listed in `intake.required_before_plan` / `required_before_code` that are still empty
-
-Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
-
-Docs: [config/README.md](../config/README.md) · Skill: [project-intake/SKILL.md](../skills/project-intake/SKILL.md)
+Before intake or greenfield: read [project.defaults.yaml](../config/project.defaults.yaml). AskQuestion fields: [project.intake-fields.yaml](../config/project.intake-fields.yaml).

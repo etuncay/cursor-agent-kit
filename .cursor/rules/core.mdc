@@ -1,0 +1,23 @@
+---
+description: Always-on discipline, locale, and lazy intake pointer. Token-conscious single rule.
+alwaysApply: true
+---
+
+# Core agent rules
+
+## Discipline
+
+Think before coding; state assumptions. Simpler approach exists → say so. Minimum code; no speculative features or abstractions. Surgical diffs only — match existing style; every changed line traces to the request. Verify fixes (test/signal); UI changes per [verification.md](../plans/_shared/verification.md) when brief requires. Multi-step: brief plan with verify checks. Git: no commit/push/destructive ops unless user asks. Plan mode: plan read-only until approved.
+
+## Locale
+
+| Artifact | Language |
+|----------|----------|
+| Chat | config `locale.chat` in [project.defaults.yaml](../config/project.defaults.yaml); user prompt overrides |
+| Plans / briefs | config `locale.plan` (default English) |
+| AskQuestion labels | config `locale.ask_question_labels` |
+| Code + JSON keys | English |
+
+## Intake (lazy)
+
+Greenfield, plan, design, scaffold without brief → read [project-intake/SKILL.md](../skills/project-intake/SKILL.md) (hooks inject intent). Skip for implement-plan, scoped fix/refactor, or `skip intake`. Config: [project.defaults.yaml](../config/project.defaults.yaml); field catalog: [project.intake-fields.yaml](../config/project.intake-fields.yaml).
