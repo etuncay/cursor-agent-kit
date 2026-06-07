@@ -36,24 +36,21 @@ Analyze a codebase and generate onboarding documentation for engineers, tech lea
 
 ## Quick Start
 
-```bash
-# 1) Gather codebase facts
-python3 scripts/codebase_analyzer.py /path/to/repo
+Gather facts with your own tools (Glob/Grep/Read) — no bundled script required:
 
-# 2) Export machine-readable output
-python3 scripts/codebase_analyzer.py /path/to/repo --json
-
-# 3) Use the template to draft onboarding docs
-# See references/onboarding-template.md
-```
+1. Structure: top-level dirs + entry points (Glob `**/{package.json,*.csproj,go.mod,pyproject.toml}`).
+2. Stack: read manifests/lockfiles for languages, frameworks, package managers.
+3. Commands: extract the real `install` / `dev` / `test` / `build` from `scripts`, `Makefile`, or CI.
+4. Config surface: `.env.example`, config files, infra manifests.
+5. Draft the doc from the inline template below.
 
 ---
 
 ## Recommended Workflow
 
-1. Run `scripts/codebase_analyzer.py` against the target repository.
-2. Capture key signals: file counts, detected languages, config files, top-level structure.
-3. Fill the onboarding template in `references/onboarding-template.md`.
+1. Inspect the repo with Glob/Grep/Read (structure, manifests, CI).
+2. Capture key signals: detected languages, frameworks, config files, top-level structure.
+3. Fill the inline onboarding template below.
 4. Tailor output depth by audience:
    - Junior: setup + guardrails
    - Senior: architecture + operational concerns
@@ -63,9 +60,19 @@ python3 scripts/codebase_analyzer.py /path/to/repo --json
 
 ## Onboarding Document Template
 
-Detailed template and section examples live in:
-- `references/onboarding-template.md`
-- `references/output-format-templates.md`
+```markdown
+# <Project> — Onboarding
+
+## 1. What it does (one paragraph)
+## 2. Stack & architecture (languages, frameworks, services, data stores)
+## 3. Repo map (top-level dirs → responsibility)
+## 4. Local setup (prereqs → install → env → run) with copy-paste commands
+## 5. Common tasks (run tests, add a feature, run a migration)
+## 6. Key decisions & gotchas (the "why" behind non-obvious choices)
+## 7. Troubleshooting & where to get help
+```
+
+Audience depth: Junior → setup + guardrails · Senior → architecture + ops · Contractor → scoped ownership + integration boundaries.
 
 ---
 

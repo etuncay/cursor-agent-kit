@@ -5,7 +5,7 @@ description: "Use when the user asks to fix, debug, or make a specific feature/m
 
 # Focused Fix — Deep-Dive Feature Repair
 
-**Output locale:** [`.cursor/plans/_shared/output-locale.md`](../../plans/_shared/output-locale.md) — user replies **English**; code **English**.
+**Output locale:** [`.cursor/plans/_shared/output-locale.md`](../../plans/_shared/output-locale.md) — user replies → config `locale.chat`; code **English**.
 
 ## When to Use
 
@@ -161,7 +161,7 @@ For each CRITICAL issue found, confirm root cause before adding it to the fix li
 - State clearly: "I think X is the root cause because Y"
 - Trace the data/control flow backward to verify — don't trust surface-level symptoms
 - If the issue spans multiple components, add diagnostic logging at each boundary to identify which layer fails
-- **REQUIRED SUB-SKILL:** For complex bugs found during diagnosis, apply `superpowers:systematic-debugging` Phase 1 (Root Cause Investigation) to confirm before proceeding
+- **REQUIRED:** For complex bugs, do an explicit root-cause investigation (reproduce → trace backward → confirm with evidence) before adding the issue to the fix list
 
 **RISK LABELING:**
 Assign each issue a risk label:
@@ -305,9 +305,8 @@ If you catch yourself thinking any of these, you are skipping phases:
 
 ## Related Skills
 
-- **`superpowers:systematic-debugging`** — Use within Phase 3 for root-cause tracing of individual complex bugs
-- **`superpowers:verification-before-completion`** — Use within Phase 5 before claiming the feature is fixed
-- **`scope`** — If you need to understand blast radius before starting, run scope first then focused-fix
+- `screen-test-protocol` — drive UI verification in Phase 5 when the feature has screens.
+- `implementation-plan` — if the repair turns into a larger redesign, capture it as a plan first.
 
 ## Quick Reference
 

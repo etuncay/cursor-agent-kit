@@ -332,56 +332,29 @@ Last-Modified: Wed, 21 Oct 2015 07:28:00 GMT
 - Support fine-grained access control
 - Audit access patterns
 
-## Tools and Scripts
+## Tooling
 
-### api_linter.py
-Analyzes API specifications for compliance with REST conventions and best practices.
+Use standard OpenAPI tooling (no bundled scripts):
 
-**Features:**
-- OpenAPI/Swagger spec validation
-- Naming convention checks
-- HTTP method usage validation
-- Error format consistency
-- Documentation completeness analysis
-
-### breaking_change_detector.py
-Compares API specification versions to identify breaking changes.
-
-**Features:**
-- Endpoint comparison
-- Schema change detection
-- Field removal/modification tracking
-- Migration guide generation
-- Impact severity assessment
-
-### api_scorecard.py
-Provides comprehensive scoring of API design quality.
-
-**Features:**
-- Multi-dimensional scoring
-- Detailed improvement recommendations
-- Letter grade assessment (A-F)
-- Benchmark comparisons
-- Progress tracking
+- **Linting / conventions:** `npx @stoplight/spectral-cli lint openapi.yaml`, or `redocly lint`. Encode the naming, HTTP-method, error-format, and documentation checks as a Spectral ruleset.
+- **Breaking-change detection:** `npx oasdiff breaking old.yaml new.yaml`, or `openapi-diff` — catches endpoint/field/type/status changes between versions.
+- **Scorecard / governance:** derive the multi-dimensional score (consistency, docs, security, usability, performance) from Spectral rule pass-rates and the checklists in this skill.
 
 ## Integration Examples
 
 ### CI/CD Integration
 ```yaml
 - name: "api-linting"
-  run: python scripts/api_linter.py openapi.json
+  run: npx @stoplight/spectral-cli lint openapi.yaml
 
 - name: "breaking-change-detection"
-  run: python scripts/breaking_change_detector.py openapi-v1.json openapi-v2.json
-
-- name: "api-scorecard"
-  run: python scripts/api_scorecard.py openapi.json
+  run: npx oasdiff breaking openapi-v1.yaml openapi-v2.yaml
 ```
 
 ### Pre-commit Hooks
 ```bash
 #!/bin/bash
-python engineering/api-design-reviewer/scripts/api_linter.py api/openapi.json
+npx @stoplight/spectral-cli lint api/openapi.yaml
 if [ $? -ne 0 ]; then
   echo "API linting failed. Please fix the issues before committing."
   exit 1

@@ -40,7 +40,9 @@ fi
 [ -d "$ROOT/ios" ] || [ -d "$ROOT/app/ios" ] && signals+=("ios-native")
 [ -d "$ROOT/apps" ] && signals+=("monorepo")
 [ -d "$ROOT/docs" ] && signals+=("spec-docs")
-[ -d "$ROOT/.cursor/plans/_briefs" ] && signals+=("has-briefs")
+if find "$ROOT/.cursor/plans/_briefs" -maxdepth 1 -name '*.brief.md' 2>/dev/null | head -1 | grep -q .; then
+  signals+=("has-briefs")
+fi
 
 # Tailwind / Bootstrap
 if find "$ROOT" -maxdepth 4 -name "tailwind.config.*" 2>/dev/null | head -1 | grep -q .; then

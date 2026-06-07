@@ -69,7 +69,7 @@ chmod +x .cursor/hooks/*.sh
 | `beforeSubmitPrompt` | `route-work.sh` | Intent classify + intake gate + skill router |
 | `stop` | `log-task-end.sh` | Task duration log |
 
-Legacy scripts (`classify-work-intent.sh`, `intake-gate.sh`, `skill-router.sh`) are superseded by `route-work.sh`.
+`route-work.sh` is the single prompt router (intent + intake gate + registry skill routing merged into one script).
 
 ## File policy
 

@@ -32,7 +32,12 @@ def has(pattern: str) -> bool:
 
 # Skip intake entirely
 skip_intake = has(
-    r"implement the plan|planı uygula|skip intake|intake atla|\bfix\b|bug|refactor|düzelt|todo.*complete"
+    r"implement the plan|planı uygula|skip intake|intake atla|\bfix\b|bug|hata|refactor|düzelt|todo.*complete"
+)
+
+# Feature-level repair → let focused-fix route (do NOT short-circuit as a quick fix)
+feature_repair = has(
+    r"make .* work|fix (the )?\w+ feature|broken|debug.*end-to-end|focus on|uçtan uca|çalışmıyor|kırık|modül.*(bozuk|çalışmıyor)|feature.*(broken|çalışmıyor)"
 )
 
 # Highest priority: implement plan
@@ -46,8 +51,9 @@ if has(r"implement the plan|planı uygula|planı implement|plana göre|tüm todo
     print(json.dumps({"additional_context": " ".join(ctx_parts), "agent_message": " ".join(agent_parts)}, ensure_ascii=False))
     sys.exit(0)
 
-# Explicit fix — no routing noise
-if has(r"\bfix\b|bug|hata|refactor|düzelt"):
+# Explicit quick fix — no routing noise. Feature-level repair falls through
+# to registry routing so the focused-fix skill can be matched.
+if has(r"\bfix\b|bug|hata|refactor|düzelt") and not feature_repair:
     print("{}")
     sys.exit(0)
 

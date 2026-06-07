@@ -34,28 +34,20 @@ Use this skill to generate pragmatic CI/CD pipelines from detected project stack
 
 ### 1. Detect Stack
 
-```bash
-python3 scripts/stack_detector.py --repo . --format text
-python3 scripts/stack_detector.py --repo . --format json > detected-stack.json
-```
+Read the repo directly with your own tools (Glob/Grep/Read) — no bundled script required:
 
-Supports input via stdin or `--input` file for offline analysis payloads.
+- Lockfiles → package manager: `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`, `poetry.lock` / `requirements.txt`, `go.sum`, `Cargo.lock`, `*.csproj`.
+- Manifests → runtime family + version (`engines`, `python_requires`, Go/.NET version).
+- `scripts` / build targets → the **real** `lint` / `test` / `build` commands (never invent them).
 
 ### 2. Generate Pipeline From Detection
 
-```bash
-python3 scripts/pipeline_generator.py \
-  --input detected-stack.json \
-  --platform github \
-  --output .github/workflows/ci.yml \
-  --format text
-```
+Write the workflow YAML directly from what you detected:
 
-Or end-to-end from repo directly:
+- GitHub Actions → `.github/workflows/ci.yml`
+- GitLab CI → `.gitlab-ci.yml`
 
-```bash
-python3 scripts/pipeline_generator.py --repo . --platform gitlab --output .gitlab-ci.yml
-```
+Mirror the detected package manager's cache action and the real project commands. Keep deploy jobs gated behind protected branches/environments.
 
 ### 3. Validate Before Merge
 
@@ -71,14 +63,13 @@ python3 scripts/pipeline_generator.py --repo . --platform gitlab --output .gitla
 - Add production deploy with manual gate/approval.
 - Keep rollout/rollback commands explicit and auditable.
 
-## Script Interfaces
+## Real tooling (optional)
 
-- `python3 scripts/stack_detector.py --help`
-  - Detects stack signals from repository files
-  - Reads optional JSON input from stdin/`--input`
-- `python3 scripts/pipeline_generator.py --help`
-  - Generates GitHub/GitLab YAML from detection payload
-  - Writes to stdout or `--output`
+Prefer the agent's own file inspection. When the user wants an external validator:
+
+- `actionlint` — lint GitHub Actions workflow YAML.
+- `act` — run GitHub Actions locally for a smoke check.
+- GitLab CI Lint (project CI Lint page / API) — validate `.gitlab-ci.yml`.
 
 ## Common Pitfalls
 
@@ -100,10 +91,8 @@ python3 scripts/pipeline_generator.py --repo . --platform gitlab --output .gitla
 
 ## References
 
-- [references/github-actions-templates.md](references/github-actions-templates.md)
-- [references/gitlab-ci-templates.md](references/gitlab-ci-templates.md)
-- [references/deployment-gates.md](references/deployment-gates.md)
-- [README.md](README.md)
+- GitHub Actions docs: https://docs.github.com/actions
+- GitLab CI/CD docs: https://docs.gitlab.com/ee/ci/
 
 ## Detection Heuristics
 

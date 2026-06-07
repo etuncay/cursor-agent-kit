@@ -37,34 +37,15 @@ The workflow supports both Python and TypeScript MCP implementations and treats 
 ### 1. OpenAPI to MCP Scaffold
 
 1. Start from a valid OpenAPI spec.
-2. Generate tool manifest + starter server code.
-3. Review naming and auth strategy.
-4. Add endpoint-specific runtime logic.
-
-```bash
-python3 scripts/openapi_to_mcp.py \
-  --input openapi.json \
-  --server-name billing-mcp \
-  --language python \
-  --output-dir ./out \
-  --format text
-```
-
-Supports stdin as well:
-
-```bash
-cat openapi.json | python3 scripts/openapi_to_mcp.py --server-name billing-mcp --language typescript
-```
+2. Map each operation → one MCP tool (use `operationId` as the tool name; see contract rules below).
+3. Generate the server with the official SDK rather than a bundled script:
+   - Python: `mcp` SDK / FastMCP.
+   - TypeScript: `@modelcontextprotocol/sdk`.
+4. Review naming + auth strategy, then add endpoint-specific runtime logic.
 
 ### 2. Validate MCP Tool Definitions
 
-Run validator before integration tests:
-
-```bash
-python3 scripts/mcp_validator.py --input out/tool_manifest.json --strict --format text
-```
-
-Checks include duplicate names, invalid schema shape, missing descriptions, empty required fields, and naming hygiene.
+Before integration tests, check the manifest against the [Contract Quality Gates](#contract-quality-gates): duplicate tool names, invalid JSON-Schema shape, missing descriptions, empty `required`, and naming hygiene. Validate input/output schemas with a standard JSON-Schema validator (`ajv`, `jsonschema`).
 
 ### 3. Runtime Selection
 
@@ -86,15 +67,11 @@ Checks include duplicate names, invalid schema shape, missing descriptions, empt
 - Introduce new tool IDs for breaking behavior changes.
 - Maintain changelog of tool contracts per release.
 
-## Script Interfaces
+## Tooling
 
-- `python3 scripts/openapi_to_mcp.py --help`
-  - Reads OpenAPI from stdin or `--input`
-  - Produces manifest + server scaffold
-  - Emits JSON summary or text report
-- `python3 scripts/mcp_validator.py --help`
-  - Validates manifests and optional runtime config
-  - Returns non-zero exit in strict mode when errors exist
+- Official SDKs: `mcp` / FastMCP (Python), `@modelcontextprotocol/sdk` (TypeScript).
+- MCP Inspector (`@modelcontextprotocol/inspector`) to exercise tools interactively.
+- A JSON-Schema validator (`ajv`, `jsonschema`) for tool input/output schemas.
 
 ## Common Pitfalls
 
@@ -116,11 +93,9 @@ Checks include duplicate names, invalid schema shape, missing descriptions, empt
 
 ## Reference Material
 
-- [references/openapi-extraction-guide.md](references/openapi-extraction-guide.md)
-- [references/python-server-template.md](references/python-server-template.md)
-- [references/typescript-server-template.md](references/typescript-server-template.md)
-- [references/validation-checklist.md](references/validation-checklist.md)
-- [README.md](README.md)
+- MCP specification: https://modelcontextprotocol.io
+- Python SDK: https://github.com/modelcontextprotocol/python-sdk
+- TypeScript SDK: https://github.com/modelcontextprotocol/typescript-sdk
 
 ## Architecture Decisions
 

@@ -93,16 +93,19 @@ intake:
     - data_source
     - deliverable
 
+  # Tier fields are conditional on architecture (authoritative source:
+  # required_when in project.intake-fields.yaml). frontend.* is skipped for
+  # backend-only; backend.* is skipped for frontend-only.
   required_before_code:
     - work_type
     - architecture
     - scope
     - data_source
     - deliverable
-    - frontend.language
-    - frontend.framework
-    - backend.language
-    - backend.framework
+    - frontend.language     # only when architecture has a frontend tier
+    - frontend.framework    # only when architecture has a frontend tier
+    - backend.language      # only when architecture has a backend tier
+    - backend.framework     # only when architecture has a backend tier
 
 # ---------------------------------------------------------------------------
 # Repo signal hints (agent infer — not user-facing)

@@ -141,28 +141,19 @@ In modern software development, dependencies form complex webs that can introduc
 - Validates CI/CD environment consistency
 - Tracks dependency resolution differences
 
-## Technical Architecture
+## Tooling by ecosystem
 
-### Scanner Engine (`dep_scanner.py`)
-- Multi-format parser supporting 8+ package ecosystems
-- Built-in vulnerability database with 500+ CVE patterns
-- Transitive dependency resolution from lockfiles
-- JSON and human-readable output formats
-- Configurable scanning depth and exclusion patterns
+Use the ecosystem's own auditing tools (no bundled scripts). The agent runs these and interprets the output.
 
-### License Analyzer (`license_checker.py`)
-- License detection from package metadata and files
-- Compatibility matrix with 20+ license types
-- Conflict detection engine with remediation suggestions
-- Risk scoring based on distribution and usage context
-- Export capabilities for legal review
+| Ecosystem | Vulnerabilities | Licenses | Outdated |
+|-----------|-----------------|----------|----------|
+| npm / pnpm / yarn | `npm audit`, `pnpm audit`, `osv-scanner` | `license-checker` | `npm outdated`, `npm-check-updates` |
+| Python | `pip-audit`, `safety` | `pip-licenses` | `pip list --outdated` |
+| Go | `govulncheck` | `go-licenses` | `go list -u -m all` |
+| Rust | `cargo audit` | `cargo deny check licenses` | `cargo outdated` |
+| Multi / SBOM | `osv-scanner`, `trivy fs .`, `grype` | `trivy`, `scancode` | — |
 
-### Upgrade Planner (`upgrade_planner.py`)
-- Semantic version analysis with breaking change prediction
-- Dependency ordering based on risk and interdependence
-- Migration checklists with testing recommendations
-- Rollback procedures for failed upgrades
-- Timeline estimation for upgrade cycles
+For SBOMs use `syft` (CycloneDX/SPDX). Match advisories against [OSV](https://osv.dev) and the GitHub Advisory Database.
 
 ## Use Cases & Applications
 
@@ -194,23 +185,25 @@ In modern software development, dependencies form complex webs that can introduc
 
 ### CI/CD Pipeline Integration
 ```bash
-# Security gate in CI
-python dep_scanner.py /project --format json --fail-on-high
-python license_checker.py /project --policy strict --format json
+# Security gate in CI (fail the build on high/critical)
+osv-scanner --lockfile=package-lock.json
+npm audit --audit-level=high
+pip-audit            # Python projects
 ```
 
 ### Scheduled Audits
 ```bash
-# Weekly dependency audit
-./audit_dependencies.sh > weekly_report.html
-python upgrade_planner.py deps.json --timeline 30days
+# Weekly: vulnerabilities + outdated + licenses
+osv-scanner -r .
+npm outdated || true
+npx license-checker --summary
 ```
 
 ### Development Workflow
 ```bash
-# Pre-commit dependency check
-python dep_scanner.py . --quick-scan
-python license_checker.py . --warn-conflicts
+# Pre-commit / local check
+npm audit --audit-level=high
+osv-scanner --lockfile=<your-lockfile>
 ```
 
 ## Advanced Features
@@ -321,17 +314,17 @@ python license_checker.py . --warn-conflicts
 ## Quick Start
 
 ```bash
-# Scan project for vulnerabilities and licenses
-python scripts/dep_scanner.py /path/to/project
+# 1) Vulnerabilities (multi-ecosystem)
+osv-scanner -r .
 
-# Check license compliance
-python scripts/license_checker.py /path/to/project --policy strict
+# 2) Licenses (npm example)
+npx license-checker --summary
 
-# Plan dependency upgrades
-python scripts/upgrade_planner.py deps.json --risk-threshold medium
+# 3) Outdated / upgrade planning
+npm outdated   # or: pip list --outdated / go list -u -m all / cargo outdated
 ```
 
-For detailed usage instructions, see [README.md](README.md).
+Advisory sources: [OSV](https://osv.dev), GitHub Advisory Database, ecosystem-native audit databases.
 
 ---
 

@@ -27,14 +27,15 @@ Complete toolkit for Security Operations including vulnerability management, com
 Scan source code for security vulnerabilities including hardcoded secrets, SQL injection, XSS, command injection, and path traversal.
 
 ```bash
-# Scan project for security issues
-python scripts/security_scanner.py /path/to/project
+# SAST (code) — secrets, SQLi, XSS, command injection, path traversal
+semgrep --config p/owasp-top-ten --config p/secrets .
 
-# Filter by severity
-python scripts/security_scanner.py /path/to/project --severity high
+# Secrets only
+gitleaks detect --source . --redact
 
-# JSON output for CI/CD
-python scripts/security_scanner.py /path/to/project --json --output report.json
+# Language-focused linters
+bandit -r .                      # Python
+npx eslint --plugin security .   # JavaScript/TypeScript
 ```
 
 **Detects:**
@@ -49,14 +50,16 @@ python scripts/security_scanner.py /path/to/project --json --output report.json
 Scan dependencies for known CVEs across npm, Python, and Go ecosystems.
 
 ```bash
-# Assess project dependencies
-python scripts/vulnerability_assessor.py /path/to/project
+# Dependency CVEs (multi-ecosystem)
+osv-scanner -r .
 
-# Critical/high only
-python scripts/vulnerability_assessor.py /path/to/project --severity high
+# Ecosystem-native
+npm audit --audit-level=high   # npm/pnpm/yarn
+pip-audit                      # Python
+govulncheck ./...              # Go
 
-# Export vulnerability report
-python scripts/vulnerability_assessor.py /path/to/project --json --output vulns.json
+# Container / filesystem scan
+trivy fs .
 ```
 
 **Scans:**
@@ -75,18 +78,15 @@ python scripts/vulnerability_assessor.py /path/to/project --json --output vulns.
 Verify security compliance against SOC 2, PCI-DSS, HIPAA, and GDPR frameworks.
 
 ```bash
-# Check all frameworks
-python scripts/compliance_checker.py /path/to/project
+# Infra/config misconfiguration (maps to many SOC2/PCI controls)
+checkov -d .
+trivy config .
 
-# Specific framework
-python scripts/compliance_checker.py /path/to/project --framework soc2
-python scripts/compliance_checker.py /path/to/project --framework pci-dss
-python scripts/compliance_checker.py /path/to/project --framework hipaa
-python scripts/compliance_checker.py /path/to/project --framework gdpr
-
-# Export compliance report
-python scripts/compliance_checker.py /path/to/project --json --output compliance.json
+# Cloud posture (if applicable)
+prowler aws
 ```
+
+Framework control verification (SOC 2 / PCI-DSS / HIPAA / GDPR) is largely evidence-based: work through the control mappings in [Compliance Frameworks](#compliance-frameworks) and record pass/gap per control.
 
 **Verifies:**
 - Access control implementation
@@ -105,28 +105,30 @@ python scripts/compliance_checker.py /path/to/project --json --output compliance
 Complete security assessment of a codebase.
 
 ```bash
-# Step 1: Scan for code vulnerabilities
-python scripts/security_scanner.py . --severity medium
-# STOP if exit code 2 — resolve critical findings before continuing
+# Step 1: SAST — code vulnerabilities
+semgrep --config p/owasp-top-ten --config p/secrets .
+gitleaks detect --source . --redact
+# STOP on any critical finding — resolve before continuing
 ```
 
 ```bash
-# Step 2: Check dependency vulnerabilities
-python scripts/vulnerability_assessor.py . --severity high
-# STOP if exit code 2 — patch critical CVEs before continuing
+# Step 2: Dependency vulnerabilities
+osv-scanner -r .
+# STOP on critical/high CVE — patch before continuing
 ```
 
 ```bash
-# Step 3: Verify compliance controls
-python scripts/compliance_checker.py . --framework all
-# STOP if exit code 2 — address critical gaps before proceeding
+# Step 3: Config / IaC misconfiguration
+checkov -d .
+trivy config .
+# Then verify framework controls against the mappings below
 ```
 
 ```bash
-# Step 4: Generate combined reports
-python scripts/security_scanner.py . --json --output security.json
-python scripts/vulnerability_assessor.py . --json --output vulns.json
-python scripts/compliance_checker.py . --json --output compliance.json
+# Step 4: Machine-readable reports for CI artifacts
+semgrep --json -o security.json --config p/owasp-top-ten .
+osv-scanner --format json -r . > vulns.json
+trivy config --format json -o config.json .
 ```
 
 ### Workflow 2: CI/CD Security Gate
@@ -152,14 +154,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: "security-scanner"
-        run: python scripts/security_scanner.py . --severity high
+      - name: "sast"
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/owasp-top-ten
 
-      - name: "vulnerability-assessment"
-        run: python scripts/vulnerability_assessor.py . --severity critical
+      - name: "secrets"
+        uses: gitleaks/gitleaks-action@v2
 
-      - name: "compliance-check"
-        run: python scripts/compliance_checker.py . --framework soc2
+      - name: "dependency-scan"
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sh -s -- -b /usr/local/bin
+          osv-scanner -r .
 ```
 
 Each step fails the pipeline on its respective exit code — no deployment proceeds past a critical finding.
@@ -170,7 +176,7 @@ Respond to a new CVE affecting your application.
 
 ```
 1. ASSESS (0-2 hours)
-   - Identify affected systems using vulnerability_assessor.py
+   - Identify affected systems with `osv-scanner` / `npm audit` / `pip-audit`
    - Check if CVE is being actively exploited
    - Determine CVSS environmental score for your context
    - STOP if CVSS 9.0+ on internet-facing system — escalate immediately
@@ -183,13 +189,13 @@ Respond to a new CVE affecting your application.
 
 3. REMEDIATE
    - Update affected dependency to fixed version
-   - Run security_scanner.py to verify fix (must return exit code 0)
-   - STOP if scanner still flags the CVE — do not deploy
+   - Re-scan to verify the fix (no remaining critical findings)
+   - STOP if the scanner still flags the CVE — do not deploy
    - Test for regressions
    - Deploy with enhanced monitoring
 
 4. VERIFY
-   - Re-run vulnerability_assessor.py
+   - Re-run the dependency scanner (`osv-scanner` / ecosystem audit)
    - Confirm CVE no longer reported
    - Document remediation actions
 ```
@@ -214,7 +220,7 @@ PHASE 2: CONTAIN (15-60 min)
 PHASE 3: ERADICATE (1-4 hours)
 - Root cause identified
 - Malware/backdoors removed
-- Vulnerabilities patched (run security_scanner.py; must return exit code 0)
+- Vulnerabilities patched (re-scan shows no critical findings)
 - Systems hardened
 
 PHASE 4: RECOVER (4-24 hours)
@@ -235,47 +241,22 @@ PHASE 5: POST-INCIDENT (24-72 hours)
 
 ## Tool Reference
 
-### security_scanner.py
+| Purpose | Recommended tools |
+|---------|-------------------|
+| SAST (code) | `semgrep` (`p/owasp-top-ten`, `p/secrets`), `bandit` (Py), `eslint-plugin-security` (JS) |
+| Secrets | `gitleaks`, `detect-secrets`, `trufflehog` |
+| Dependency CVEs | `osv-scanner`, `npm audit`, `pip-audit`, `govulncheck`, `trivy fs` |
+| IaC / config | `checkov`, `trivy config`, `tfsec` |
+| Cloud posture | `prowler`, `scoutsuite` |
+| SBOM / signing | `syft`, `grype`, `cosign` |
 
-| Option | Description |
-|--------|-------------|
-| `target` | Directory or file to scan |
-| `--severity, -s` | Minimum severity: critical, high, medium, low |
-| `--verbose, -v` | Show files as they're scanned |
-| `--json` | Output results as JSON |
-| `--output, -o` | Write results to file |
-
-**Exit Codes:** `0` = no critical/high findings · `1` = high severity findings · `2` = critical severity findings
-
-### vulnerability_assessor.py
-
-| Option | Description |
-|--------|-------------|
-| `target` | Directory containing dependency files |
-| `--severity, -s` | Minimum severity: critical, high, medium, low |
-| `--verbose, -v` | Show files as they're scanned |
-| `--json` | Output results as JSON |
-| `--output, -o` | Write results to file |
-
-**Exit Codes:** `0` = no critical/high vulnerabilities · `1` = high severity vulnerabilities · `2` = critical severity vulnerabilities
-
-### compliance_checker.py
-
-| Option | Description |
-|--------|-------------|
-| `target` | Directory to check |
-| `--framework, -f` | Framework: soc2, pci-dss, hipaa, gdpr, all |
-| `--verbose, -v` | Show checks as they run |
-| `--json` | Output results as JSON |
-| `--output, -o` | Write results to file |
-
-**Exit Codes:** `0` = compliant (90%+ score) · `1` = non-compliant (50-69% score) · `2` = critical gaps (<50% score)
+Gate builds on tool exit codes: non-zero on high/critical → fail the job. Treat any critical finding as a hard STOP before deploy.
 
 ---
 
 ## Security Standards
 
-See `references/security_standards.md` for OWASP Top 10 full guidance, secure coding standards, authentication requirements, and API security controls.
+See the [OWASP Top 10](https://owasp.org/www-project-top-ten/) and [ASVS](https://owasp.org/www-project-application-security-verification-standard/) for full guidance on secure coding, authentication, and API security controls.
 
 ### Secure Coding Checklist
 
@@ -315,7 +296,7 @@ See `references/security_standards.md` for OWASP Top 10 full guidance, secure co
 
 ## Compliance Frameworks
 
-See `references/compliance_requirements.md` for full control mappings. Run `compliance_checker.py` to verify the controls below:
+Compliance is evidence-based: work through the control mappings below and record pass/gap per control. Use `checkov` / `trivy config` / `prowler` for the technical controls.
 
 ### SOC 2 Type II
 - **CC6** Logical Access: authentication, authorization, MFA
@@ -415,7 +396,7 @@ app.use((req, res, next) => {
 
 ## OWASP Top 10 Quick-Check
 
-Rapid 15-minute assessment — run through each category and note pass/fail. For deep-dive testing, hand off to the **security-pen-testing** skill.
+Rapid 15-minute assessment — run through each category and note pass/fail. For deep-dive testing, run a dedicated penetration-testing pass following the OWASP Testing Guide.
 
 | # | Category | One-Line Check |
 |---|----------|----------------|
@@ -424,13 +405,13 @@ Rapid 15-minute assessment — run through each category and note pass/fail. For
 | A03 | Injection | Run parameterized query audit; check ORM raw-query usage |
 | A04 | Insecure Design | Review threat model exists for critical flows |
 | A05 | Security Misconfiguration | Check default credentials removed; error pages generic |
-| A06 | Vulnerable Components | Run `vulnerability_assessor.py`; zero critical/high CVEs |
+| A06 | Vulnerable Components | Run `osv-scanner`; zero critical/high CVEs |
 | A07 | Auth Failures | Verify MFA on admin; brute-force protection active |
 | A08 | Software & Data Integrity | Confirm CI/CD pipeline signs artifacts; no unsigned deps |
 | A09 | Logging & Monitoring | Validate audit logs capture auth events; alerts configured |
 | A10 | SSRF | Test internal URL filters; block metadata endpoints (169.254.169.254) |
 
-> **Deep dive needed?** Hand off to `security-pen-testing` for full OWASP Testing Guide coverage.
+> **Deep dive needed?** Run a full penetration test using the [OWASP Web Security Testing Guide](https://owasp.org/www-project-web-security-testing-guide/).
 
 ---
 
@@ -492,14 +473,14 @@ cosign verify ghcr.io/org/app:latest --certificate-identity=ci@org.com --certifi
 | 3 | Hardened build platform, non-falsifiable provenance | Tamper-proof build |
 | 4 | Two-party review, hermetic builds | Maximum supply-chain assurance |
 
-> **Cross-references:** `security-pen-testing` (vulnerability exploitation testing), `dependency-auditor` (license and CVE audit for dependencies).
+> **Cross-references:** `dependency-auditor` (license and CVE audit for dependencies).
 
 ---
 
 ## Reference Documentation
 
-| Document | Description |
-|----------|-------------|
-| `references/security_standards.md` | OWASP Top 10, secure coding, authentication, API security |
-| `references/vulnerability_management_guide.md` | CVE triage, CVSS scoring, remediation workflows |
-| `references/compliance_requirements.md` | SOC 2, PCI-DSS, HIPAA, GDPR full control mappings |
+| Topic | Source |
+|-------|--------|
+| OWASP Top 10 / secure coding | https://owasp.org/www-project-top-ten/ · https://cheatsheetseries.owasp.org |
+| CVE triage / CVSS scoring | https://www.first.org/cvss/ · https://osv.dev |
+| Compliance control mappings | SOC 2 (AICPA TSC), PCI-DSS v4.0, HIPAA Security Rule, GDPR official texts |

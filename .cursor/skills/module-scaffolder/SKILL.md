@@ -9,7 +9,7 @@ description: >-
 
 Create feature/module skeleton per approved brief. Clarify target path before coding.
 
-**Output locale:** [output-locale.md](../../plans/_shared/output-locale.md) — English chat; English code; i18n per brief.
+**Output locale:** [output-locale.md](../../plans/_shared/output-locale.md) — chat → config `locale.chat`; code English; i18n per brief.
 
 ## Triggers
 

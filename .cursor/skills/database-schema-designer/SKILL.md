@@ -69,7 +69,8 @@ User 1──* AuditLog
 ---
 
 ## Full Schema Example (Task Management SaaS)
-→ See references/full-schema-examples.md for details
+
+The RLS, seed, and ERD sections below illustrate a task-management schema (organizations → projects → tasks, with members, labels, assignments, and an audit log). Derive the concrete tables from the entities and relationships in Steps 1–3.
 
 ## Row-Level Security (RLS) Policies
 

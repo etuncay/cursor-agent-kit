@@ -9,7 +9,7 @@ description: >-
 
 UI and visual design workflow. Requires brief fields from [project-intake](../project-intake/SKILL.md) or infer from prompt.
 
-**Output locale:** English chat/plans; English code.
+**Output locale:** [output-locale.md](../../plans/_shared/output-locale.md) — chat → config `locale.chat`; plans/briefs → `locale.plan` (English); code English.
 
 ## Triggers
 
