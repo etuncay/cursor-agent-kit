@@ -31,7 +31,6 @@ now_hm="$(date +"%H:%M:%S")"
 printf '%s %s\n' "$now_epoch" "$conv" > "$STATE_FILE"
 printf '%s START conv=%s\n' "$now_iso" "$conv" >> "$LOG_FILE"
 
-cat <<EOF
-{"agent_message": "Gorev basladi: ${now_hm} (log: .cursor/logs/agent-activity.log)"}
-EOF
+# Display handled by route-work.sh user_message (rules/skills report). Log only here.
+echo '{"continue":true}'
 exit 0

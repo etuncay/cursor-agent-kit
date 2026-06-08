@@ -5,315 +5,76 @@ description: "Use when the user asks to fix, debug, or make a specific feature/m
 
 # Focused Fix — Deep-Dive Feature Repair
 
-**Output locale:** [`.cursor/plans/_shared/output-locale.md`](../../plans/_shared/output-locale.md) — user replies → config `locale.chat`; code **English**.
+**Output locale:** [output-locale.md](../../plans/_shared/output-locale.md) — chat → `locale.chat`; code **English**.
 
-## When to Use
+## When to use
 
-Activate when the user asks to fix, debug, or make a specific feature/module/area work. Key triggers:
-- "make X work"
-- "fix the Y feature"
-- "the Z module is broken"
-- "focus on [area]"
-- "this feature needs to work properly"
+Entire feature/module needs systematic repair — not a single-line bug fix.
 
-This is NOT for quick single-bug fixes (use systematic-debugging for that). This is for when an entire feature or module needs systematic repair — tracing every dependency, reading logs, checking tests, mapping the full dependency graph.
+Triggers: "make X work", "fix the Y feature", "module is broken", "focus on [area]", "uçtan uca".
 
-```dot
-digraph when_to_use {
-    "User reports feature broken" [shape=diamond];
-    "Single bug or symptom?" [shape=diamond];
-    "Use systematic-debugging" [shape=box];
-    "Entire feature/module needs repair?" [shape=diamond];
-    "Use focused-fix" [shape=box];
-    "Something else" [shape=box];
-
-    "User reports feature broken" -> "Single bug or symptom?";
-    "Single bug or symptom?" -> "Use systematic-debugging" [label="yes"];
-    "Single bug or symptom?" -> "Entire feature/module needs repair?" [label="no"];
-    "Entire feature/module needs repair?" -> "Use focused-fix" [label="yes"];
-    "Entire feature/module needs repair?" -> "Something else" [label="no"];
-}
-```
-
-## The Iron Law
+## Iron law
 
 ```
 NO FIXES WITHOUT COMPLETING SCOPE → TRACE → DIAGNOSE FIRST
 ```
 
-If you haven't finished Phase 3, you cannot propose fixes. Period.
+Follow **5 phases in order**: SCOPE → TRACE → DIAGNOSE → FIX → VERIFY. If fix #3+ creates new issues, STOP and discuss architecture with user.
 
-**Violating the letter of these phases is violating the spirit of focused repair.**
+## Phase 1: SCOPE
 
-## Protocol — STRICTLY follow these 5 phases IN ORDER
+1. Confirm target feature/folder with user if unclear
+2. Read every file in the feature folder
+3. Output feature manifest: primary path, entry points, internal files, file/line counts
 
-```dot
-digraph phases {
-    rankdir=LR;
-    SCOPE [shape=box, label="Phase 1\nSCOPE"];
-    TRACE [shape=box, label="Phase 2\nTRACE"];
-    DIAGNOSE [shape=box, label="Phase 3\nDIAGNOSE"];
-    FIX [shape=box, label="Phase 4\nFIX"];
-    VERIFY [shape=box, label="Phase 5\nVERIFY"];
+## Phase 2: TRACE
 
-    SCOPE -> TRACE -> DIAGNOSE -> FIX -> VERIFY;
-    FIX -> DIAGNOSE [label="fix broke\nsomething else"];
-    FIX -> ESCALATE [label="3+ fixes\ncreate new issues"];
-    ESCALATE [shape=doubleoctagon, label="STOP\nQuestion Architecture\nDiscuss with User"];
-}
-```
+**Inbound:** every import → verify file/export exists; types match; note env vars, config, DB models, API calls, packages.
 
-### Phase 1: SCOPE — Map the Feature Boundary
+**Outbound:** grep codebase for imports from this feature → verify consumers use correct API.
 
-Before touching any code, understand the full scope of the feature.
+Output dependency map: inbound, outbound, required env vars, config files.
 
-1. Ask the user: "Which feature/folder should I focus on?" if not already clear
-2. Identify the PRIMARY folder/files for this feature
-3. Map EVERY file in that folder — read each one, understand its purpose
-4. Create a feature manifest:
+## Phase 3: DIAGNOSE
 
-```
-FEATURE SCOPE:
-  Primary path: src/features/auth/
-  Entry points: [files that are imported by other parts of the app]
-  Internal files: [files only used within this feature]
-  Total files: N
-  Total lines: N
-```
+Run all checks before fixing:
 
-### Phase 2: TRACE — Map All Dependencies (Inside AND Outside)
+| Area | Checks |
+|------|--------|
+| Code | Imports resolve; no circular deps; no `any` at boundaries; async error handling |
+| Runtime | Env vars set; migrations current; API shapes correct |
+| Tests | Run all feature tests + record failures |
+| Logs/git | Recent commits on feature + dependencies |
+| Config | Valid configs; dev/prod mismatches |
 
-Trace every connection this feature has to the rest of the codebase.
+Label each issue **HIGH/MED/LOW**. Confirm root cause with evidence before adding to fix list.
 
-**INBOUND (what this feature imports):**
-1. For every import statement in every file in the feature folder:
-   - Trace it to its source
-   - Verify the source file exists
-   - Verify the imported entity (function, type, component) exists and is exported
-   - Check if the types/signatures match what the feature expects
-2. Check for:
-   - Environment variables used (grep for process.env, import.meta.env, os.environ, etc.)
-   - Config files referenced
-   - Database models/schemas used
-   - API endpoints called
-   - Third-party packages imported
+Output diagnosis report: CRITICAL + WARNINGS + test summary.
 
-**OUTBOUND (what imports this feature):**
-1. Search the entire codebase for imports from this feature folder
-2. For each consumer:
-   - Verify they're importing entities that actually exist
-   - Check if they're using the correct API/interface
-   - Note if any consumers are using deprecated patterns
+## Phase 4: FIX (order matters)
 
-Output format:
-```
-DEPENDENCY MAP:
-  Inbound (this feature depends on):
-    src/lib/db.ts → used in auth/repository.ts (getUserById, createUser)
-    src/lib/jwt.ts → used in auth/service.ts (signToken, verifyToken)
-    @prisma/client → used in auth/repository.ts
-    process.env.JWT_SECRET → used in auth/service.ts
-    process.env.DATABASE_URL → used via prisma
+1. Dependencies → 2. Types → 3. Logic → 4. Tests → 5. Integration
 
-  Outbound (depends on this feature):
-    src/app/api/login/route.ts → imports { login } from auth/service
-    src/app/api/register/route.ts → imports { register } from auth/service
-    src/middleware.ts → imports { verifyToken } from auth/service
+Rules: one issue at a time; run related test after each fix; log every change; avoid edits outside feature folder without stating why; HIGH before MED before LOW.
 
-  Env vars required: JWT_SECRET, DATABASE_URL
-  Config files: prisma/schema.prisma (User model)
-```
+**3-strike rule:** 3+ fixes that create new issues → stop, summarize, ask user about restructuring vs patching.
 
-### Phase 3: DIAGNOSE — Find Every Issue
+## Phase 5: VERIFY
 
-Systematically check for problems. Run ALL of these checks:
+1. All feature tests pass
+2. All consumer tests pass
+3. Full suite if available
+4. Manual UI steps if applicable
+5. Completion report: files changed, fixes, test count, consumers verified
 
-**CODE QUALITY:**
-- [ ] Every import resolves to a real file/export
-- [ ] No circular dependencies within the feature
-- [ ] Types are consistent across boundaries (no `any` at interfaces)
-- [ ] Error handling exists for all async operations
-- [ ] No TODO/FIXME/HACK comments indicating known issues
+## Stop signals
 
-**RUNTIME:**
-- [ ] All required environment variables are set (check .env)
-- [ ] Database migrations are up to date (if applicable)
-- [ ] API endpoints return expected shapes
-- [ ] No hardcoded values that should be configurable
+- "Obvious bug, skip tracing" → return to TRACE
+- "Only this one file" → return to SCOPE
+- "Tests pass, done" → run consumer tests too
+- "One more fix" after 2+ cascades → escalate
 
-**TESTS:**
-- [ ] Run ALL tests related to this feature: find them by searching for imports from the feature folder
-- [ ] Record every failure with full error output
-- [ ] Check test coverage — are there untested code paths?
+## Related skills
 
-**LOGS & ERRORS:**
-- [ ] Search for any log files, error reports, or Sentry-style error tracking
-- [ ] Check git log for recent changes to this feature: `git log --oneline -20 -- <feature-path>`
-- [ ] Check if any recent commits might have broken something: `git log --oneline -5 --all -- <files that this feature depends on>`
-
-**CONFIGURATION:**
-- [ ] Verify all config files this feature depends on are valid
-- [ ] Check for mismatches between development and production configs
-- [ ] Verify third-party service credentials are valid (if testable)
-
-**ROOT-CAUSE CONFIRMATION:**
-For each CRITICAL issue found, confirm root cause before adding it to the fix list:
-- State clearly: "I think X is the root cause because Y"
-- Trace the data/control flow backward to verify — don't trust surface-level symptoms
-- If the issue spans multiple components, add diagnostic logging at each boundary to identify which layer fails
-- **REQUIRED:** For complex bugs, do an explicit root-cause investigation (reproduce → trace backward → confirm with evidence) before adding the issue to the fix list
-
-**RISK LABELING:**
-Assign each issue a risk label:
-
-| Risk | Criteria |
-|---|---|
-| HIGH | Public API surface / breaking interface contract / DB schema / auth or security logic / widely imported module (>3 callers) / git hotspot |
-| MED | Internal module with tests / shared utility / config with runtime impact / internal callers of changed functions |
-| LOW | Leaf module / isolated file / test-only change / single-purpose helper with no callers |
-
-Output format:
-```
-DIAGNOSIS REPORT:
-  Issues found: N
-
-  CRITICAL:
-    1. [HIGH] [file:line] — description of issue. Root cause: [confirmed explanation]
-    2. [HIGH] [file:line] — description of issue. Root cause: [confirmed explanation]
-
-  WARNINGS:
-    1. [MED] [file:line] — description of issue
-    2. [LOW] [file:line] — description of issue
-
-  TESTS:
-    Ran: N tests
-    Passed: N
-    Failed: N
-    [list each failure with one-line summary]
-```
-
-### Phase 4: FIX — Repair Everything Systematically
-
-Fix issues in this EXACT order:
-
-1. **DEPENDENCIES FIRST** — fix broken imports, missing packages, wrong versions
-2. **TYPES SECOND** — fix type mismatches at feature boundaries
-3. **LOGIC THIRD** — fix actual business logic bugs
-4. **TESTS FOURTH** — fix or create tests for each fix
-5. **INTEGRATION LAST** — verify the feature works end-to-end with its consumers
-
-Rules:
-- Fix ONE issue at a time
-- After each fix, run the related test to confirm it works
-- If a fix breaks something else, STOP and re-evaluate (go back to DIAGNOSE)
-- Keep a running log of every change made
-- Never change code outside the feature folder without explicitly stating why
-- Fix HIGH-risk issues before MED, MED before LOW
-
-**ESCALATION RULE — 3-Strike Architecture Check:**
-If 3+ fixes in this phase create NEW issues (not pre-existing ones), STOP immediately.
-
-This pattern indicates an architectural problem, not a bug collection:
-- Each fix reveals new shared state / coupling / problem in a different place
-- Fixes require "massive refactoring" to implement
-- Each fix creates new symptoms elsewhere
-
-**Action:** Stop fixing. Tell the user: "3+ fixes have cascaded into new issues. This suggests the feature's architecture may need rethinking, not patching. Here's what I've found: [summary]. Should we continue fixing symptoms or discuss restructuring?"
-
-Do NOT attempt fix #4 without this discussion.
-
-Output after each fix:
-```
-FIX #1:
-  File: auth/service.ts:45
-  Issue: signToken called with wrong argument order
-  Change: swapped (expiresIn, payload) to (payload, expiresIn)
-  Test: auth.test.ts → PASSES
-```
-
-### Phase 5: VERIFY — Confirm Everything Works
-
-After all fixes are applied:
-
-1. Run ALL tests in the feature folder — every single one must pass
-2. Run ALL tests in files that IMPORT from this feature — must pass
-3. Run the full test suite if available — check for regressions
-4. If the feature has a UI, describe how to manually verify it
-5. Summarize all changes made
-
-Final output:
-```
-FOCUSED FIX COMPLETE:
-  Feature: auth
-  Files changed: 4
-  Total fixes: 7
-  Tests: 23/23 passing
-  Regressions: 0
-
-  Changes:
-    1. auth/service.ts — fixed token signing argument order
-    2. auth/repository.ts — added null check for user lookup
-    3. auth/middleware.ts — fixed async error handling
-    4. auth/types.ts — aligned UserResponse type with actual DB schema
-
-  Consumers verified:
-    - src/app/api/login/route.ts ✅
-    - src/app/api/register/route.ts ✅
-    - src/middleware.ts ✅
-```
-
-## Red Flags — STOP and Return to Current Phase
-
-If you catch yourself thinking any of these, you are skipping phases:
-
-- "I can see the bug, let me just fix it" → STOP. You haven't traced dependencies yet.
-- "Scoping is overkill, it's obviously just this file" → STOP. That's always wrong for feature-level fixes.
-- "I'll map dependencies after I fix the obvious stuff" → STOP. You'll miss root causes.
-- "The user said fix X, so I only need to look at X" → STOP. Features have dependencies.
-- "Tests are passing so I'm done" → STOP. Did you run consumer tests too?
-- "I don't need to check env vars for this" → STOP. Config issues masquerade as code bugs.
-- "One more fix should do it" (after 2+ cascading failures) → STOP. Escalate.
-- "I'll skip the diagnosis report, the fixes are obvious" → STOP. Write it down.
-
-**ALL of these mean: Return to the phase you're supposed to be in.**
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|---|---|
-| "The feature is small, I don't need all 5 phases" | Small features have dependencies too. Phases 1-2 take minutes for small features — do them. |
-| "I already know this codebase" | Knowledge decays. Trace the actual imports, don't rely on memory. |
-| "The user wants speed, not process" | Skipping phases causes rework. Systematic is faster than thrashing. |
-| "Only one file is broken" | If only one file were broken, the user would say "fix this bug", not "make the feature work." |
-| "I fixed the tests, so it works" | Tests can pass while consumers are broken. Verify Phase 5 fully. |
-| "The dependency map is too big to trace" | Then the feature is too big to fix without tracing. That's exactly why you need it. |
-| "Root cause is obvious, I don't need to confirm" | "Obvious" root causes are wrong 40% of the time. Confirm with evidence. |
-| "3 cascading failures is normal for a big fix" | 3 cascading failures means you're patching symptoms of an architectural problem. |
-
-## Anti-Patterns — NEVER do these
-
-| Anti-Pattern | Why It's Wrong |
-|---|---|
-| Starting to fix code before mapping all dependencies | You'll miss root causes and create whack-a-mole fixes |
-| Fixing only the file the user mentioned | Related files likely have issues too |
-| Ignoring environment variables and configuration | Many "code bugs" are actually config issues |
-| Skipping the test run phase | You can't verify fixes without running tests |
-| Making changes outside the feature folder without explaining why | Unexpected side effects confuse the user |
-| Fixing symptoms in consumer files instead of root cause in feature | Band-aids that break when the next consumer appears |
-| Declaring "done" without running verification tests | Untested fixes are unverified fixes |
-| Changing the public API without updating all consumers | Breaks everything that depends on the feature |
-
-## Related Skills
-
-- `screen-test-protocol` — drive UI verification in Phase 5 when the feature has screens.
-- `implementation-plan` — if the repair turns into a larger redesign, capture it as a plan first.
-
-## Quick Reference
-
-| Phase | Key Action | Output |
-|---|---|---|
-| SCOPE | Read every file, map entry points | Feature manifest |
-| TRACE | Map inbound + outbound dependencies | Dependency map |
-| DIAGNOSE | Check code, runtime, tests, logs, config | Diagnosis report |
-| FIX | Fix in order: deps → types → logic → tests → integration | Fix log per issue |
-| VERIFY | Run all tests, check consumers, summarize | Completion report |
+- `screen-test-protocol` — UI verification in Phase 5
+- `implementation-plan` — if repair becomes a redesign

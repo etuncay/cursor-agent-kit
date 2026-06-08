@@ -51,27 +51,7 @@ Create feature/module skeleton per approved brief. Clarify target path before co
 5. i18n keys if brief.i18n ≠ defer
 6. Report file tree to user in English
 
-## Example trees
-
-### React + Vite feature
-
-```
-src/features/{slug}/
-├── components/
-├── hooks/
-├── {slug}-page.tsx
-├── types.ts
-└── index.ts
-```
-
-### Next.js App Router
-
-```
-src/app/{slug}/
-├── page.tsx
-├── components/
-└── actions.ts          # if server actions
-```
+**Example trees:** Vite → `src/features/{slug}/` (page, components, hooks, types); Next → `src/app/{slug}/` (page, components, actions).
 
 ## Do not
 

@@ -54,6 +54,11 @@ fi
 
 joined=$(IFS=, ; echo "${signals[*]:-unknown}")
 
+# Reset per-session read tracking for context report
+LOG_DIR="$ROOT/.cursor/logs"
+mkdir -p "$LOG_DIR"
+printf '{"rules_read":[],"skills_read":[],"configs_read":[]}\n' > "$LOG_DIR/.active-context.json"
+
 cat <<EOF
 {"additional_context": "[Stack:${joined}]"}
 EOF

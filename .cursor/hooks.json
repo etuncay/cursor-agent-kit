@@ -15,6 +15,12 @@
         "matcher": ".*"
       }
     ],
+    "beforeReadFile": [
+      {
+        "command": ".cursor/hooks/track-context-read.sh",
+        "matcher": "Read|TabRead"
+      }
+    ],
     "stop": [
       {
         "command": ".cursor/hooks/log-task-end.sh"

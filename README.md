@@ -16,7 +16,8 @@ Without structure, AI coding assistants tend to skip requirements, mix planning 
 - **Plan/implement separation** — During implementation the plan body stays read-only; only `todos[].status` changes ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Team standards in git** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) holds locale, architecture, stack, and intake rules; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) holds the AskQuestion catalog (loaded on intake only). Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
 - **Automatic skill routing** — [route-work.sh](.cursor/hooks/route-work.sh) plus [registry.json](.cursor/skills/claude-skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, etc.) without typing `@skill` every time.
-- **Behavioral guardrails** — Single always-on rule [core.mdc](.cursor/rules/core.mdc) (~400 tokens); glob rules [quality-standards.mdc](.cursor/rules/quality-standards.mdc) apply on UI files only.
+- **Behavioral guardrails** — Single always-on rule [core.mdc](.cursor/rules/core.mdc) (~350 tokens); glob rules [quality-standards.mdc](.cursor/rules/quality-standards.mdc) apply on UI files only.
+- **Context visibility** — Each prompt shows active rules/skills and estimated token cost on screen ([route_engine.py](.cursor/hooks/lib/route_engine.py), [context-manifest.json](.cursor/config/context-manifest.json)).
 - **Verification built-in** — [verification.md](.cursor/plans/_shared/verification.md) is referenced on the implement path via hooks.
 - **Automatic screen testing + docs** — when a UI screen changes, [screen-test-protocol/SKILL.md](.cursor/skills/screen-test-protocol/SKILL.md) drives `cursor-ide-browser` (login, click, fill, create/edit/delete) and writes per-screen test docs under `user_test/<app>/`.
 - **Project-agnostic** — Works on Node, .NET, Python, Go, and monorepos; stack is detected at session start ([session-detect-stack.sh](.cursor/hooks/session-detect-stack.sh)).
@@ -57,7 +58,8 @@ flowchart TD
 |-------|--------|--------|
 | `sessionStart` | `session-detect-stack.sh` | Injects `[Stack:…]` repo signals (compact) |
 | `beforeSubmitPrompt` | `log-task-start.sh` | Logs task start time to `.cursor/logs/agent-activity.log` + on-screen note |
-| `beforeSubmitPrompt` | `route-work.sh` | Intent classify + intake gate + registry skill route (replaces 3 legacy hooks) |
+| `beforeSubmitPrompt` | `route-work.sh` | Intent + skill router + on-screen context report |
+| `beforeReadFile` | `track-context-read.sh` | Track rules/skills actually read this session |
 | `stop` | `log-task-end.sh` | Logs task end time + duration |
 
 Activity log records start/end timestamps and duration per task. Token/cost usage is **not** available to hooks — view it in Cursor's **Settings → Usage** or the per-message indicator.
@@ -143,7 +145,7 @@ Details: [config/README.md](.cursor/config/README.md)
 | Path | Role |
 |------|------|
 | `config/` | Team defaults + intake field catalog |
-| `rules/core.mdc` | Single always-on agent behavior (~400 tokens) |
+| `rules/core.mdc` | Single always-on agent behavior (~350 tokens) |
 | `rules/*.mdc` | Lazy/glob rules (intake workflow, quality, screen tests) |
 | `hooks/` + `hooks.json` | sessionStart + beforeSubmitPrompt automation |
 | `skills/` | Specialized workflows (intake, plan, design, scaffold, secops, …) |
@@ -158,9 +160,37 @@ The installer also scaffolds a sibling **`user_test/`** folder (screen-test docs
 
 ## Included skills
 
-### Hook-routed
+Skills are instruction files that tell the agent **how to behave** for a specific job type. [route-work.sh](.cursor/hooks/route-work.sh) auto-routes via [registry.json](.cursor/skills/claude-skills-router/registry.json); you can also invoke any skill manually with `@skill-name`.
 
-Matched automatically from [registry.json](.cursor/skills/claude-skills-router/registry.json). Trigger phrases support both English and Turkish.
+### Core workflow skills
+
+These drive the **brief → plan → code** pipeline.
+
+| Skill | Purpose | When to use |
+|-------|---------|-------------|
+| [project-intake](.cursor/skills/project-intake/SKILL.md) | Gather requirements before coding: infer repo + prompt, ask missing fields via `AskQuestion`, save approved brief to `plans/_briefs/*.brief.md`, then route to the right next skill. | Greenfield, new feature, plan/design/scaffold — when no brief exists yet. |
+| [implementation-plan](.cursor/skills/implementation-plan/SKILL.md) | Write an implementation plan from an approved brief (screen inventory, gap analysis, todos). Does **not** write app code. | "Create plan", "implementation plan" — **not** "implement the plan". |
+| [design-intake](.cursor/skills/design-intake/SKILL.md) | UI/design intake: aesthetic, theme, motion, component stack; produces `plans/design-*.plan.md`. | "Design", "mockup", "redesign", "build UI". |
+| [module-scaffolder](.cursor/skills/module-scaffolder/SKILL.md) | Scaffold a new module/screen from brief: stack-aware file tree (pages, routes, CRUD forms, API endpoints). | "Scaffold", "new module", "new screen", "add feature". |
+| [focused-fix](.cursor/skills/focused-fix/SKILL.md) | Systematic end-to-end repair of a broken feature/module — trace dependencies, logs, tests, config across layers. **Not** for single-line bug fixes. | "Make X work", "fix the Y feature", "module is broken", "debug end-to-end". |
+| [screen-test-protocol](.cursor/skills/screen-test-protocol/SKILL.md) | Browser smoke tests via `cursor-ide-browser` (login, click, fill, CRUD) + per-screen Markdown docs under `user_test/<app>/`. | After UI changes, "screen test", "smoke test", "test docs". |
+
+### Specialist skills
+
+Deep guidance for specific technical domains. Hook-routed when prompt keywords match.
+
+| Skill | Purpose | When to use |
+|-------|---------|-------------|
+| [api-design-reviewer](.cursor/skills/api-design-reviewer/SKILL.md) | REST API design review: naming, HTTP methods, status codes, breaking changes, OpenAPI/Swagger, versioning, error formats, design scorecard. | API PR review, v2 migration, new/changed endpoints. |
+| [dependency-auditor](.cursor/skills/dependency-auditor/SKILL.md) | Dependency audit: CVEs, transitive risks, license conflicts, safe upgrade paths across ecosystems. | "CVE", "npm audit", pre-release audit, license compliance. |
+| [ci-cd-pipeline-builder](.cursor/skills/ci-cd-pipeline-builder/SKILL.md) | Generate CI/CD pipelines from detected stack signals (GitHub Actions, GitLab CI; lint/test/build/deploy). | "Set up CI", "create pipeline", "GitHub Actions". |
+| [codebase-onboarding](.cursor/skills/codebase-onboarding/SKILL.md) | Analyze repo and produce onboarding docs: architecture, key files, local setup, contribution checklist. | New engineer/contractor, "how does this repo work", architecture overview. |
+| [database-schema-designer](.cursor/skills/database-schema-designer/SKILL.md) | Database schema design: ERD, normalization, migrations (Drizzle/Prisma/TypeORM/Alembic), indexes, RLS, seed data. | "ERD", "schema design", "plan migration", table relationships. |
+| [senior-secops](.cursor/skills/senior-secops/SKILL.md) | Application security & SecOps: SAST, OWASP Top 10, secret scanning, threat modeling, hardening, SOC2/PCI/HIPAA/GDPR checks. | Security scan, pentest prep, vulnerability management, incident response. |
+
+### Hook trigger phrases
+
+Matched automatically from [registry.json](.cursor/skills/claude-skills-router/registry.json). Phrases support English and Turkish.
 
 | Skill | Triggers (examples) |
 |-------|---------------------|
@@ -181,9 +211,11 @@ Matched automatically from [registry.json](.cursor/skills/claude-skills-router/r
 
 Not in the hook registry; invoke manually when needed:
 
-- `handoff` — compact conversation for session handoff
-- `mcp-server-builder` — scaffold MCP servers from OpenAPI
-- `cursor-guidelines` — discipline reminder (canonical text in [core.mdc](.cursor/rules/core.mdc))
+| Skill | Purpose |
+|-------|---------|
+| [handoff](.cursor/skills/handoff/SKILL.md) | Compact the current conversation into a handoff doc for the next session; redacts secrets; references existing briefs/plans instead of duplicating them. |
+| [mcp-server-builder](.cursor/skills/mcp-server-builder/SKILL.md) | Build production-ready MCP servers from OpenAPI (Python or TypeScript); expose REST APIs as typed agent tools. |
+| [cursor-guidelines](.cursor/skills/cursor-guidelines/SKILL.md) | Stub reminder — canonical discipline text lives in [core.mdc](.cursor/rules/core.mdc). |
 
 ## Typical workflow
 

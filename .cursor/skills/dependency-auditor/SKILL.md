@@ -5,327 +5,58 @@ description: "Audit and manage dependencies across multi-language projects. Iden
 
 # Dependency Auditor
 
-> **Skill Type:** POWERFUL  
-> **Category:** Engineering  
-> **Domain:** Dependency Management & Security  
+Audit dependencies for CVEs, licenses, outdated versions, and upgrade risk. Run ecosystem tools; interpret output; prioritize fixes.
 
-## Overview
+## When to use
 
-The **Dependency Auditor** is a comprehensive toolkit for analyzing, auditing, and managing dependencies across multi-language software projects. This skill provides deep visibility into your project's dependency ecosystem, enabling teams to identify vulnerabilities, ensure license compliance, optimize dependency trees, and plan safe upgrades.
+Pre-release audit, CVE investigation, major version bump planning, license compliance.
 
-In modern software development, dependencies form complex webs that can introduce significant security, legal, and maintenance risks. A single project might have hundreds of direct and transitive dependencies, each potentially introducing vulnerabilities, license conflicts, or maintenance burden. This skill addresses these challenges through automated analysis and actionable recommendations.
+## Workflow
 
-## Core Capabilities
-
-### 1. Vulnerability Scanning & CVE Matching
-
-**Comprehensive Security Analysis**
-- Scans dependencies against built-in vulnerability databases
-- Matches Common Vulnerabilities and Exposures (CVE) patterns
-- Identifies known security issues across multiple ecosystems
-- Analyzes transitive dependency vulnerabilities
-- Provides CVSS scores and exploit assessments
-- Tracks vulnerability disclosure timelines
-- Maps vulnerabilities to dependency paths
-
-**Multi-Language Support**
-- **JavaScript/Node.js**: package.json, package-lock.json, yarn.lock
-- **Python**: requirements.txt, pyproject.toml, Pipfile.lock, poetry.lock
-- **Go**: go.mod, go.sum
-- **Rust**: Cargo.toml, Cargo.lock
-- **Ruby**: Gemfile, Gemfile.lock
-- **Java/Maven**: pom.xml, gradle.lockfile
-- **PHP**: composer.json, composer.lock
-- **C#/.NET**: packages.config, project.assets.json
-
-### 2. License Compliance & Legal Risk Assessment
-
-**License Classification System**
-- **Permissive Licenses**: MIT, Apache 2.0, BSD (2-clause, 3-clause), ISC
-- **Copyleft (Strong)**: GPL (v2, v3), AGPL (v3)
-- **Copyleft (Weak)**: LGPL (v2.1, v3), MPL (v2.0)
-- **Proprietary**: Commercial, custom, or restrictive licenses
-- **Dual Licensed**: Multi-license scenarios and compatibility
-- **Unknown/Ambiguous**: Missing or unclear licensing
-
-**Conflict Detection**
-- Identifies incompatible license combinations
-- Warns about GPL contamination in permissive projects
-- Analyzes license inheritance through dependency chains
-- Provides compliance recommendations for distribution
-- Generates legal risk matrices for decision-making
-
-### 3. Outdated Dependency Detection
-
-**Version Analysis**
-- Identifies dependencies with available updates
-- Categorizes updates by severity (patch, minor, major)
-- Detects pinned versions that may be outdated
-- Analyzes semantic versioning patterns
-- Identifies floating version specifiers
-- Tracks release frequencies and maintenance status
-
-**Maintenance Status Assessment**
-- Identifies abandoned or unmaintained packages
-- Analyzes commit frequency and contributor activity
-- Tracks last release dates and security patch availability
-- Identifies packages with known end-of-life dates
-- Assesses upstream maintenance quality
-
-### 4. Dependency Bloat Analysis
-
-**Unused Dependency Detection**
-- Identifies dependencies that aren't actually imported/used
-- Analyzes import statements and usage patterns
-- Detects redundant dependencies with overlapping functionality
-- Identifies oversized packages for simple use cases
-- Maps actual vs. declared dependency usage
-
-**Redundancy Analysis**
-- Identifies multiple packages providing similar functionality
-- Detects version conflicts in transitive dependencies
-- Analyzes bundle size impact of dependencies
-- Identifies opportunities for dependency consolidation
-- Maps dependency overlap and duplication
-
-### 5. Upgrade Path Planning & Breaking Change Risk
-
-**Semantic Versioning Analysis**
-- Analyzes semver patterns to predict breaking changes
-- Identifies safe upgrade paths (patch/minor versions)
-- Flags major version updates requiring attention
-- Tracks breaking changes across dependency updates
-- Provides rollback strategies for failed upgrades
-
-**Risk Assessment Matrix**
-- Low Risk: Patch updates, security fixes
-- Medium Risk: Minor updates with new features
-- High Risk: Major version updates, API changes
-- Critical Risk: Dependencies with known breaking changes
-
-**Upgrade Prioritization**
-- Security patches: Highest priority
-- Bug fixes: High priority
-- Feature updates: Medium priority
-- Major rewrites: Planned priority
-- Deprecated features: Immediate attention
-
-### 6. Supply Chain Security
-
-**Dependency Provenance**
-- Verifies package signatures and checksums
-- Analyzes package download sources and mirrors
-- Identifies suspicious or compromised packages
-- Tracks package ownership changes and maintainer shifts
-- Detects typosquatting and malicious packages
-
-**Transitive Risk Analysis**
-- Maps complete dependency trees
-- Identifies high-risk transitive dependencies
-- Analyzes dependency depth and complexity
-- Tracks influence of indirect dependencies
-- Provides supply chain risk scoring
-
-### 7. Lockfile Analysis & Deterministic Builds
-
-**Lockfile Validation**
-- Ensures lockfiles are up-to-date with manifests
-- Validates integrity hashes and version consistency
-- Identifies drift between environments
-- Analyzes lockfile conflicts and resolution strategies
-- Ensures deterministic, reproducible builds
-
-**Environment Consistency**
-- Compares dependencies across environments (dev/staging/prod)
-- Identifies version mismatches between team members
-- Validates CI/CD environment consistency
-- Tracks dependency resolution differences
+1. **Scan vulnerabilities** — `osv-scanner -r .` + ecosystem audit
+2. **License check** — classify all direct + transitive deps
+3. **Outdated analysis** — patch/minor/major categorization
+4. **Upgrade plan** — security patches first; test after each bump
+5. **Report** — CVE list with paths, license conflicts, recommended actions
 
 ## Tooling by ecosystem
 
-Use the ecosystem's own auditing tools (no bundled scripts). The agent runs these and interprets the output.
-
 | Ecosystem | Vulnerabilities | Licenses | Outdated |
 |-----------|-----------------|----------|----------|
-| npm / pnpm / yarn | `npm audit`, `pnpm audit`, `osv-scanner` | `license-checker` | `npm outdated`, `npm-check-updates` |
+| npm/pnpm/yarn | `npm audit`, `pnpm audit`, `osv-scanner` | `license-checker` | `npm outdated`, `ncu` |
 | Python | `pip-audit`, `safety` | `pip-licenses` | `pip list --outdated` |
 | Go | `govulncheck` | `go-licenses` | `go list -u -m all` |
 | Rust | `cargo audit` | `cargo deny check licenses` | `cargo outdated` |
-| Multi / SBOM | `osv-scanner`, `trivy fs .`, `grype` | `trivy`, `scancode` | — |
+| Multi/SBOM | `osv-scanner`, `trivy fs`, `grype` | `trivy`, `scancode` | — |
 
-For SBOMs use `syft` (CycloneDX/SPDX). Match advisories against [OSV](https://osv.dev) and the GitHub Advisory Database.
+SBOM: `syft` (CycloneDX/SPDX). Advisories: [OSV](https://osv.dev), GitHub Advisory Database.
 
-## Use Cases & Applications
+## License categories
 
-### Security Teams
-- **Vulnerability Management**: Continuous scanning for security issues
-- **Incident Response**: Rapid assessment of vulnerable dependencies
-- **Supply Chain Monitoring**: Tracking third-party security posture
-- **Compliance Reporting**: Automated security compliance documentation
+| Type | Examples | Risk |
+|------|----------|------|
+| Permissive | MIT, Apache-2.0, BSD, ISC | Low |
+| Weak copyleft | LGPL, MPL | Medium — review distribution |
+| Strong copyleft | GPL, AGPL | High — may infect proprietary code |
+| Unknown/missing | — | Block until clarified |
 
-### Legal & Compliance Teams
-- **License Auditing**: Comprehensive license compliance verification
-- **Risk Assessment**: Legal risk analysis for software distribution
-- **Due Diligence**: Dependency licensing for M&A activities
-- **Policy Enforcement**: Automated license policy compliance
+Flag GPL in permissive projects; document exceptions.
 
-### Development Teams
-- **Dependency Hygiene**: Regular cleanup of unused dependencies
-- **Upgrade Planning**: Strategic dependency update scheduling
-- **Performance Optimization**: Bundle size optimization through dep analysis
-- **Technical Debt**: Identifying and prioritizing dependency technical debt
+## Risk prioritization
 
-### DevOps & Platform Teams
-- **Build Optimization**: Faster builds through dependency optimization
-- **Security Automation**: Automated vulnerability scanning in CI/CD
-- **Environment Consistency**: Ensuring consistent dependencies across environments
-- **Release Management**: Dependency-aware release planning
+1. Critical/high CVEs — immediate patch
+2. License blockers — before release
+3. Patch updates — scheduled
+4. Major upgrades — planned with regression tests
 
-## Integration Patterns
+## CI integration
 
-### CI/CD Pipeline Integration
 ```bash
-# Security gate in CI (fail the build on high/critical)
-osv-scanner --lockfile=package-lock.json
+osv-scanner --lockfile=package-lock.json   # fail on high/critical
 npm audit --audit-level=high
-pip-audit            # Python projects
+pip-audit
 ```
 
-### Scheduled Audits
-```bash
-# Weekly: vulnerabilities + outdated + licenses
-osv-scanner -r .
-npm outdated || true
-npx license-checker --summary
-```
+## Output
 
-### Development Workflow
-```bash
-# Pre-commit / local check
-npm audit --audit-level=high
-osv-scanner --lockfile=<your-lockfile>
-```
-
-## Advanced Features
-
-### Custom Vulnerability Databases
-- Support for internal/proprietary vulnerability feeds
-- Custom CVE pattern definitions
-- Organization-specific risk scoring
-- Integration with enterprise security tools
-
-### Policy-Based Scanning
-- Configurable license policies by project type
-- Custom risk thresholds and escalation rules
-- Automated policy enforcement and notifications
-- Exception management for approved violations
-
-### Reporting & Dashboards
-- Executive summaries for management
-- Technical reports for development teams
-- Trend analysis and dependency health metrics
-- Integration with project management tools
-
-### Multi-Project Analysis
-- Portfolio-level dependency analysis
-- Shared dependency impact analysis
-- Organization-wide license compliance
-- Cross-project vulnerability propagation
-
-## Best Practices
-
-### Scanning Frequency
-- **Security Scans**: Daily or on every commit
-- **License Audits**: Weekly or monthly
-- **Upgrade Planning**: Monthly or quarterly
-- **Full Dependency Audit**: Quarterly
-
-### Risk Management
-1. **Prioritize Security**: Address high/critical CVEs immediately
-2. **License First**: Ensure compliance before functionality
-3. **Gradual Updates**: Incremental dependency updates
-4. **Test Thoroughly**: Comprehensive testing after updates
-5. **Monitor Continuously**: Automated monitoring and alerting
-
-### Team Workflows
-1. **Security Champions**: Designate dependency security owners
-2. **Review Process**: Mandatory review for new dependencies
-3. **Update Cycles**: Regular, scheduled dependency updates
-4. **Documentation**: Maintain dependency rationale and decisions
-5. **Training**: Regular team education on dependency security
-
-## Metrics & KPIs
-
-### Security Metrics
-- Mean Time to Patch (MTTP) for vulnerabilities
-- Number of high/critical vulnerabilities
-- Percentage of dependencies with known vulnerabilities
-- Security debt accumulation rate
-
-### Compliance Metrics
-- License compliance percentage
-- Number of license conflicts
-- Time to resolve compliance issues
-- Policy violation frequency
-
-### Maintenance Metrics
-- Percentage of up-to-date dependencies
-- Average dependency age
-- Number of abandoned dependencies
-- Upgrade success rate
-
-### Efficiency Metrics
-- Bundle size reduction percentage
-- Unused dependency elimination rate
-- Build time improvement
-- Developer productivity impact
-
-## Troubleshooting Guide
-
-### Common Issues
-1. **False Positives**: Tuning vulnerability detection sensitivity
-2. **License Ambiguity**: Resolving unclear or multiple licenses
-3. **Breaking Changes**: Managing major version upgrades
-4. **Performance Impact**: Optimizing scanning for large codebases
-
-### Resolution Strategies
-- Whitelist false positives with documentation
-- Contact maintainers for license clarification
-- Implement feature flags for risky upgrades
-- Use incremental scanning for large projects
-
-## Future Enhancements
-
-### Planned Features
-- Machine learning for vulnerability prediction
-- Automated dependency update pull requests
-- Integration with container image scanning
-- Real-time dependency monitoring dashboards
-- Natural language policy definition
-
-### Ecosystem Expansion
-- Additional language support (Swift, Kotlin, Dart)
-- Container and infrastructure dependencies
-- Development tool and build system dependencies
-- Cloud service and SaaS dependency tracking
-
----
-
-## Quick Start
-
-```bash
-# 1) Vulnerabilities (multi-ecosystem)
-osv-scanner -r .
-
-# 2) Licenses (npm example)
-npx license-checker --summary
-
-# 3) Outdated / upgrade planning
-npm outdated   # or: pip list --outdated / go list -u -m all / cargo outdated
-```
-
-Advisory sources: [OSV](https://osv.dev), GitHub Advisory Database, ecosystem-native audit databases.
-
----
-
-*This skill provides comprehensive dependency management capabilities essential for maintaining secure, compliant, and efficient software projects. Regular use helps teams stay ahead of security threats, maintain legal compliance, and optimize their dependency ecosystems.*
+Deliver: vulnerability table (CVE, package, path, fixed version), license conflicts, outdated summary, prioritized upgrade plan. No bundled scripts — use repo lockfiles and commands above.
