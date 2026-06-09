@@ -1,6 +1,6 @@
 # Cursor — Generic Project Intake
 
-Project-agnostic agent instructions: **infer → AskQuestion → brief → plan → implement** flow for planning, design, scaffold, and greenfield work.
+Project-agnostic agent instructions: **refine prompt → infer → AskQuestion → brief → plan → implement** flow for planning, design, scaffold, and greenfield work.
 
 **Instruction language:** English (this tree).  
 **Output locale:** config `locale.*` in [config/project.defaults.yaml](config/project.defaults.yaml); inline summary in [rules/core.mdc](rules/core.mdc).
@@ -15,7 +15,7 @@ Minimize always-on system prompt cost; load heavy intake only when hooks or user
 | **Glob rules** | quality-standards, plan-authoring, screen-test-docs | Matching file paths only |
 | **Session hook** | `[Stack:…]` from session-detect-stack | Once per session |
 | **Prompt hook** | route-work.sh intent + compact `[route:…]` tag | Greenfield/plan/design/etc. |
-| **On-demand** | project-intake skill, intake-workflow rule, project.defaults.yaml, project.intake-fields.yaml | Intake / greenfield only |
+| **On-demand** | prompt-refinement, project-intake skill, intake-workflow rule, project.defaults.yaml, project.intake-fields.yaml | Refinement / intake / greenfield |
 
 ### Context visibility (on-screen)
 
@@ -50,8 +50,9 @@ Legacy stubs (`cursor-guidelines.mdc`, `output-locale.mdc`, `project-config.mdc`
 
 ```text
 Prompt → sessionStart ([Stack:signals])
-      → route-work.sh (intent + intake gate + skill route)
-      → on demand: project.defaults.yaml + project-intake → brief.md
+      → route-work.sh (intent + refinement gate + intake gate + skill route)
+      → on demand: prompt-refinement → user approval
+      → project.defaults.yaml + project-intake → brief.md
       → implementation-plan | design-intake | module-scaffolder
       → *.plan.md → approval → implement (todos[].status only)
 ```
@@ -60,12 +61,13 @@ Prompt → sessionStart ([Stack:signals])
 
 | Request | Expected behavior |
 |---------|-------------------|
-| "Plan a Next.js admin panel from scratch" | route-work → project-intake → brief → implementation-plan |
-| "Design a dashboard with Tailwind + shadcn" | design-intake (+ intake UI round) |
-| "Scaffold a new module" | module-scaffolder (brief required) |
-| "Implement the plan" | Implement mode; intake skipped |
-| "Fix login bug" | No intake noise; core.mdc only |
-| "skip intake" | Continue without brief (user responsibility) |
+| "Plan a Next.js admin panel from scratch" | prompt-refinement → approval → project-intake → brief → implementation-plan |
+| "Design a dashboard with Tailwind + shadcn" | prompt-refinement → approval → design-intake (+ intake UI round) |
+| "Scaffold a new module" | prompt-refinement → approval → module-scaffolder (brief required) |
+| "Implement the plan" | Implement mode; refinement + intake skipped |
+| "Fix login bug" | No refinement/intake noise; core.mdc only |
+| "skip intake" / "skip refinement" | Skip refinement and/or brief (user responsibility) |
+| "prompt geliştir: …" | Forces refinement when `prompt_refinement: on-request` |
 | "Ekran testi yap" / "screen test" | screen-test-protocol: auto browser test + per-screen docs under `user_test/<app>/` |
 
 ## Hooks

@@ -3,6 +3,12 @@
   "sourceRoot": ".cursor/skills",
   "entries": [
     {
+      "id": "prompt-refinement",
+      "priority": 105,
+      "match": "prompt geliştir|refine prompt|netleştir|prompt coach|geliştirilmiş prompt",
+      "skillPath": ".cursor/skills/prompt-refinement/SKILL.md"
+    },
+    {
       "id": "project-intake",
       "priority": 100,
       "match": "greenfield|proje başlat|agent oluştur|yeni proje|sıfırdan|from scratch",

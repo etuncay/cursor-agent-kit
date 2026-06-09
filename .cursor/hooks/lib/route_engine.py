@@ -14,6 +14,11 @@ MANIFEST_PATH = ROOT / ".cursor/config/context-manifest.json"
 REGISTRY_PATH = ROOT / ".cursor/skills/claude-skills-router/registry.json"
 ACTIVE_CTX_PATH = ROOT / ".cursor/logs/.active-context.json"
 BRIEF_DIR = ROOT / ".cursor/plans/_briefs"
+DEFAULTS_PATH = ROOT / ".cursor/config/project.defaults.yaml"
+INTAKE_SKILLS = frozenset(
+    {"project-intake", "implementation-plan", "design-intake", "module-scaffolder"}
+)
+REFINEMENT_INTENTS = frozenset({"GREENFIELD", "PLAN_ONLY", "DESIGN", "SCAFFOLD"})
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -68,8 +73,107 @@ def rule_active(rule: dict[str, Any], paths: list[str], intake_pending: bool) ->
     return False
 
 
-def has(pattern: str, text: str) -> bool:
-    return re.search(pattern, text, re.I) is not None
+def has(pattern: str, text: str, flags: int = re.I) -> bool:
+    return re.search(pattern, text, flags) is not None
+
+
+def word_count(text: str) -> int:
+    return len(re.findall(r"\S+", text))
+
+
+def load_refinement_config() -> dict[str, Any]:
+    mode = "auto"
+    min_words = 20
+    if DEFAULTS_PATH.is_file():
+        try:
+            text = DEFAULTS_PATH.read_text(encoding="utf-8")
+        except OSError:
+            return {"mode": mode, "min_words": min_words}
+        if m := re.search(r"prompt_refinement:\s*([\w-]+)", text):
+            mode = m.group(1).strip()
+        if m := re.search(r"prompt_refinement_min_words:\s*(\d+)", text):
+            min_words = int(m.group(1))
+    return {"mode": mode, "min_words": min_words}
+
+
+def is_already_refined(prompt: str) -> bool:
+    return has(r"\[refined-prompt\]|##\s*(Anladığım hedef|Goal|Hedef)\b", prompt)
+
+
+def skip_refinement(prompt: str) -> bool:
+    lower = prompt.lower()
+    return has(
+        r"skip refinement|refinement atla|skip refine|refine atla|skip intake|intake atla",
+        lower,
+    )
+
+
+def wants_refinement(prompt: str) -> bool:
+    lower = prompt.lower()
+    return has(
+        r"prompt geliştir|refine prompt|netleştir|prompt coach|geliştirilmiş prompt",
+        lower,
+    )
+
+
+def is_vague(prompt: str, min_words: int) -> bool:
+    return word_count(prompt) < min_words
+
+
+def should_auto_refine(prompt: str, routing: dict[str, Any], min_words: int) -> bool:
+    if routing["intent"] in REFINEMENT_INTENTS:
+        if is_already_refined(prompt):
+            return False
+        if has(r"^##\s", prompt, re.M) and word_count(prompt) >= min_words:
+            return False
+        return True
+    if routing.get("intake_pending") and is_vague(prompt, min_words):
+        return True
+    routed = routing.get("routed_skill")
+    if routed in INTAKE_SKILLS and is_vague(prompt, min_words):
+        return True
+    return False
+
+
+def apply_refinement_gate(
+    routing: dict[str, Any], prompt: str, cfg: dict[str, Any]
+) -> dict[str, Any]:
+    mode = cfg.get("mode", "auto")
+    if mode == "off" or skip_refinement(prompt) or is_already_refined(prompt):
+        return routing
+    if routing.get("quick_fix") or routing["intent"] in ("IMPLEMENT_PLAN", "QUICK_FIX", "SCREEN_TEST"):
+        return routing
+
+    should_refine = False
+    if mode == "on-request":
+        should_refine = wants_refinement(prompt)
+    elif mode == "auto":
+        should_refine = should_auto_refine(prompt, routing, cfg.get("min_words", 20))
+
+    if not should_refine:
+        return routing
+
+    next_skill = routing.get("routed_skill") or "project-intake"
+    if routing.get("intake_pending") and not routing.get("routed_skill"):
+        next_skill = "project-intake"
+
+    original_intent = routing["intent"]
+    ctx_parts = [
+        "[Intent:PROMPT_REFINE]",
+        f"[Intent:{original_intent}]" if original_intent != "DEFAULT" else "",
+        f"[after-refine:{next_skill}]",
+    ]
+    ctx_parts = [p for p in ctx_parts if p]
+
+    return {
+        **routing,
+        "intent": "PROMPT_REFINE",
+        "ctx_parts": ctx_parts,
+        "routed_skill": "prompt-refinement",
+        "agent_route": "[route:prompt-refinement]",
+        "refinement_pending": True,
+        "refinement_next_skill": next_skill,
+    }
 
 
 def match_registry(prompt: str) -> dict[str, Any] | None:
@@ -236,7 +340,10 @@ def build_report(
         loaded.extend(read_skills)
         loaded.extend(read_configs)
         lines.append(f"Okunan (bu oturum): {', '.join(loaded)}")
-    if routing["intake_pending"]:
+    if routing.get("refinement_pending"):
+        next_skill = routing.get("refinement_next_skill", "project-intake")
+        lines.append(f"Refinement: prompt netleştirme → onay → {next_skill}")
+    if routing["intake_pending"] and not routing.get("refinement_pending"):
         lines.append("Intake: brief yok → config + intake skill bekleniyor")
     lines.append(f"Tahmini ek yük: ~{est} token")
     return "\n".join(lines)
@@ -256,6 +363,7 @@ def process(data: dict[str, Any]) -> dict[str, Any]:
 
     paths = attachment_paths(data)
     routing = classify(prompt)
+    routing = apply_refinement_gate(routing, prompt, load_refinement_config())
     active = load_active_context()
     active_rules, base_est = active_rules_and_estimate(routing, paths, manifest)
 

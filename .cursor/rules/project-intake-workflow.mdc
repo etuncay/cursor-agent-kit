@@ -13,6 +13,7 @@ Greenfield, new feature without brief, create plan, design/mockup, scaffold — 
 
 ## Flow
 
+0. **Prompt refinement** (when `intake.prompt_refinement` ≠ off and hook routes `[route:prompt-refinement]`): [prompt-refinement/SKILL.md](../skills/prompt-refinement/SKILL.md) → structured prompt → user approval
 1. Read [project.defaults.yaml](../config/project.defaults.yaml) + [project.intake-fields.yaml](../config/project.intake-fields.yaml)
 2. Infer: user prompt → repo signals → config defaults → AskQuestion for gaps
 3. Save brief: `.cursor/plans/_briefs/{slug}.brief.md` ([template](../plans/_templates/project-brief.template.md))

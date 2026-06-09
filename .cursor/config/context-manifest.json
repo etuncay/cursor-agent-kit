@@ -57,6 +57,7 @@
     }
   ],
   "skill_tokens": {
+    "prompt-refinement": 380,
     "project-intake": 540,
     "module-scaffolder": 560,
     "focused-fix": 740,

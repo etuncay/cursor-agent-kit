@@ -18,6 +18,10 @@ Think before coding; state assumptions. Minimum code; surgical diffs; match exis
 | AskQuestion labels | config `locale.ask_question_labels` |
 | Code + JSON keys | English |
 
+## Prompt refinement (lazy)
+
+Vague greenfield/plan/design/scaffold prompts → read [prompt-refinement/SKILL.md](../skills/prompt-refinement/SKILL.md) when hook routes `[route:prompt-refinement]`. Present structured prompt, get approval, then continue. Skip for implement-plan, fix/refactor, `skip refinement`, or `skip intake`. Config: `intake.prompt_refinement` in [project.defaults.yaml](../config/project.defaults.yaml).
+
 ## Intake (lazy)
 
 Greenfield/plan/design/scaffold without brief → read [project-intake/SKILL.md](../skills/project-intake/SKILL.md) when hook routes `[route:…]`. Skip for implement-plan, fix/refactor, or `skip intake`. Config on intake: [project.defaults.yaml](../config/project.defaults.yaml), [project.intake-fields.yaml](../config/project.intake-fields.yaml).

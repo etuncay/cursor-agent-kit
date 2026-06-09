@@ -7,7 +7,7 @@ description: >-
 
 # Project intake (generic)
 
-Apply when starting work **without** an approved brief in `.cursor/plans/_briefs/`.
+Apply when starting work **without** an approved brief in `.cursor/plans/_briefs/`. If hook routed `[route:prompt-refinement]` first, run [prompt-refinement](../prompt-refinement/SKILL.md) and get approval before this skill.
 
 **Config:** [project.defaults.yaml](../../config/project.defaults.yaml)  
 **Field catalog:** [project.intake-fields.yaml](../../config/project.intake-fields.yaml)  

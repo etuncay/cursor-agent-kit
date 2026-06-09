@@ -86,6 +86,13 @@ intake:
   max_ask_rounds: 2
   ask_when_missing: true
 
+  # Prompt refinement — clarify vague prompts before intake/plan (skill: prompt-refinement)
+  # auto: greenfield/plan/design/scaffold + short/vague prompts
+  # on-request: only when user asks to refine ("prompt geliştir", "refine prompt")
+  # off: skip refinement gate entirely
+  prompt_refinement: auto
+  prompt_refinement_min_words: 20
+
   required_before_plan:
     - work_type
     - architecture
