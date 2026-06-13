@@ -4,7 +4,7 @@
 
 Cursor IDE için taşınabilir **`.cursor/`** şablonu — uygulama kodu değil, herhangi bir repo için agent orkestrasyonu.
 
-Rastgele AI prompt'larını tekrarlanabilir bir akışla değiştirir: **gereksinim çıkarımı → brief → plan → implement**. Takım varsayılanları, hook'lar, kurallar ve özelleşmiş skill'lerle desteklenir.
+Rastgele AI prompt'larını tekrarlanabilir bir akışla değiştirir: **prompt netleştirme → gereksinim çıkarımı → brief → plan → implement**. Takım varsayılanları, hook'lar, kurallar ve özelleşmiş skill'lerle desteklenir.
 
 Tek script ile herhangi bir projeye kurulur. Git'te bir kez yapılandırılır. Her oturum aynı standartları devralır.
 
@@ -12,6 +12,7 @@ Tek script ile herhangi bir projeye kurulur. Git'te bir kez yapılandırılır. 
 
 Yapı olmadan AI kod asistanları gereksinimleri atlar, planlama ile implementasyonu karıştırır ve tutarsız stack seçer. Bu kit somut artifact'ler ve otomasyonla bunu çözer:
 
+- **Intake öncesi prompt netleştirme** — Belirsiz greenfield/plan/tasarım/scaffold prompt'larında [route-work.sh](.cursor/hooks/route-work.sh) [prompt-refinement/SKILL.md](.cursor/skills/prompt-refinement/SKILL.md)'i tetikler; agent yapılandırılmış prompt sunar, onay bekler, sonra devam eder. Config: `intake.prompt_refinement` (`auto` | `on-request` | `off`) — [project.defaults.yaml](.cursor/config/project.defaults.yaml).
 - **Koddan önce yapılandırılmış intake** — [route-work.sh](.cursor/hooks/route-work.sh) greenfield/plan/tasarımda [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md)'i lazy yükler; repo sinyallerini çıkarır, yalnızca eksik alanları `AskQuestion` ile sorar, onaylı [brief'leri](.cursor/plans/_briefs/) kaydeder.
 - **Plan/implement ayrımı** — Implementasyon sırasında plan gövdesi salt okunur kalır; yalnızca `todos[].status` değişir ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Git'te takım standartları** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) locale, mimari, stack ve intake kurallarını tutar; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) AskQuestion kataloğunu tutar (yalnızca intake'ta okunur). Çözümleme sırası: **kullanıcı prompt'u → repo sinyalleri → config varsayılanları → AskQuestion**.
@@ -37,6 +38,7 @@ flowchart TD
   subgraph agent [Agent on demand]
     CFG[project.defaults.yaml]
     FLD[project.intake-fields.yaml]
+    REF[prompt-refinement]
     INT[project-intake]
     BRIEF[plans/_briefs/*.brief.md]
     PLAN[plans/features/*.plan.md]
@@ -44,7 +46,8 @@ flowchart TD
   end
   UserPrompt --> RW
   SS --> UserPrompt
-  RW --> INT
+  RW --> REF
+  REF --> INT
   INT --> CFG
   INT --> FLD
   INT --> BRIEF
@@ -134,6 +137,10 @@ architecture:
   backend:
     default_language: csharp-dotnet
     default_framework: aspnet-core
+
+intake:
+  prompt_refinement: auto          # auto | on-request | off
+  prompt_refinement_min_words: 20  # auto: kısa/belirsiz prompt'larda tetiklenir
 ```
 
 Çözümleme sırası: eksik alanlar için **kullanıcı prompt'u → repo sinyalleri → config varsayılanları → AskQuestion**.
@@ -164,10 +171,11 @@ Skill'ler, agent'a **belirli bir iş türünde nasıl davranacağını** öğret
 
 ### Ana iş akışı skill'leri
 
-**Brief → plan → kod** zincirini yönetir.
+**Netleştir → brief → plan → kod** zincirini yönetir.
 
 | Skill | Ne işe yarar | Ne zaman |
 |-------|--------------|----------|
+| [prompt-refinement](.cursor/skills/prompt-refinement/SKILL.md) | Intake veya planlamadan önce belirsiz prompt'ları netleştirir: hedef/kapsam/kısıt çıkarımı, kritik belirsizlikleri sorar, yapılandırılmış prompt sunar, onay bekler. Henüz kod, brief veya plan **yazmaz**. | Greenfield/plan/tasarım/scaffold ve hook `[route:prompt-refinement]` yönlendirdiğinde veya "prompt geliştir" denildiğinde. |
 | [project-intake](.cursor/skills/project-intake/SKILL.md) | Koddan önce gereksinim toplar: repo + prompt çıkarımı, eksik alanları `AskQuestion` ile sorar, onaylı brief'i `plans/_briefs/*.brief.md` olarak kaydeder, sonraki skill'e yönlendirir. | Greenfield, yeni özellik, plan/tasarım/scaffold — brief yokken. |
 | [implementation-plan](.cursor/skills/implementation-plan/SKILL.md) | Onaylı brief'ten uygulama planı yazar (ekran envanteri, gap analizi, todo'lar). Uygulama kodu **yazmaz**. | "Plan oluştur", "implementation plan" — **"planı uygula" değil**. |
 | [design-intake](.cursor/skills/design-intake/SKILL.md) | UI/tasarım intake: estetik, tema, motion, component stack; `plans/design-*.plan.md` üretir. | "Tasarım", "mockup", "redesign", "UI oluştur". |
@@ -194,6 +202,7 @@ Belirli teknik alanlarda derin rehberlik. Prompt anahtar kelimeleri eşleşince 
 
 | Skill | Tetikleyiciler (örnek) |
 |-------|------------------------|
+| prompt-refinement | prompt geliştir, refine prompt, netleştir |
 | project-intake | greenfield, sıfırdan, from scratch |
 | module-scaffolder | scaffold, yeni modül, new screen |
 | focused-fix | fix feature, uçtan uca, broken |
@@ -219,9 +228,17 @@ Hook registry'sinde yok; gerektiğinde manuel çağırın:
 
 ## Tipik iş akışı
 
-1. **Greenfield / yeni özellik** → agent intake çalıştırır → `plans/_briefs/*.brief.md`
+1. **Greenfield / yeni özellik** → prompt netleştirme (açıksa) → kullanıcı onayı → intake → `plans/_briefs/*.brief.md`
 2. **Plan** → `plans/features/*.plan.md` (koddan önce onay)
 3. **Planı uygula** → uygulama kodunuzda değişiklik; yalnızca plan `todos[].status` güncellenir
+
+**Refinement şu durumlarda atlanır:**
+
+- `skip refinement` / `refinement atla` derseniz
+- `implement the plan` / `Planı uygula` derseniz
+- Görev kapsamlı bir bugfix veya refactor ise
+- Config'te `intake.prompt_refinement: off` ise
+- Prompt zaten detaylı veya refined olarak işaretliyse
 
 **Intake şu durumlarda atlanır:**
 
@@ -232,9 +249,10 @@ Hook registry'sinde yok; gerektiğinde manuel çağırın:
 
 **Örnek prompt'lar:**
 
-- `Sıfırdan Next.js admin paneli planla`
-- `Planı uygula` (mevcut planı kullanır; intake atlanır)
-- `skip intake` (yalnızca config varsayılanları)
+- `Sıfırdan Next.js admin paneli planla` (refinement → intake → plan)
+- `prompt geliştir: e-ticaret admin paneli` (`on-request` modunda refinement zorlar)
+- `Planı uygula` (mevcut plan; refinement + intake atlanır)
+- `skip refinement` / `skip intake` (ilgili kapıları atlar)
 
 ## Repo yapısı (bu repo)
 

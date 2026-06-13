@@ -4,7 +4,7 @@
 
 Portable **`.cursor/`** template for Cursor IDE — agent orchestration for any repo, not application code.
 
-It replaces ad-hoc AI prompts with a repeatable pipeline: **infer requirements → brief → plan → implement**, backed by team defaults, hooks, rules, and specialized skills.
+It replaces ad-hoc AI prompts with a repeatable pipeline: **refine prompt → infer requirements → brief → plan → implement**, backed by team defaults, hooks, rules, and specialized skills.
 
 Install into any project with one script. Configure once in git. Every session inherits the same standards.
 
@@ -12,6 +12,7 @@ Install into any project with one script. Configure once in git. Every session i
 
 Without structure, AI coding assistants tend to skip requirements, mix planning with implementation, and pick inconsistent stacks. This kit addresses that with concrete artifacts and automation:
 
+- **Prompt refinement before intake** — Vague greenfield/plan/design/scaffold prompts trigger [prompt-refinement/SKILL.md](.cursor/skills/prompt-refinement/SKILL.md) via [route-work.sh](.cursor/hooks/route-work.sh); agent presents a structured prompt, waits for approval, then continues. Config: `intake.prompt_refinement` (`auto` | `on-request` | `off`) in [project.defaults.yaml](.cursor/config/project.defaults.yaml).
 - **Structured intake before code** — [route-work.sh](.cursor/hooks/route-work.sh) lazy-loads [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md) on greenfield/plan/design; infer repo signals, ask only missing fields via `AskQuestion`, save approved [briefs](.cursor/plans/_briefs/).
 - **Plan/implement separation** — During implementation the plan body stays read-only; only `todos[].status` changes ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Team standards in git** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) holds locale, architecture, stack, and intake rules; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) holds the AskQuestion catalog (loaded on intake only). Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
@@ -37,6 +38,7 @@ flowchart TD
   subgraph agent [Agent on demand]
     CFG[project.defaults.yaml]
     FLD[project.intake-fields.yaml]
+    REF[prompt-refinement]
     INT[project-intake]
     BRIEF[plans/_briefs/*.brief.md]
     PLAN[plans/features/*.plan.md]
@@ -44,7 +46,8 @@ flowchart TD
   end
   UserPrompt --> RW
   SS --> UserPrompt
-  RW --> INT
+  RW --> REF
+  REF --> INT
   INT --> CFG
   INT --> FLD
   INT --> BRIEF
@@ -134,6 +137,10 @@ architecture:
   backend:
     default_language: csharp-dotnet
     default_framework: aspnet-core
+
+intake:
+  prompt_refinement: auto          # auto | on-request | off
+  prompt_refinement_min_words: 20  # auto triggers on short/vague prompts
 ```
 
 Resolution order: **user prompt → repo signals → config defaults → AskQuestion** for missing fields.
@@ -164,10 +171,11 @@ Skills are instruction files that tell the agent **how to behave** for a specifi
 
 ### Core workflow skills
 
-These drive the **brief → plan → code** pipeline.
+These drive the **refine → brief → plan → code** pipeline.
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
+| [prompt-refinement](.cursor/skills/prompt-refinement/SKILL.md) | Clarify vague prompts before intake or planning: infer goal/scope/constraints, ask blocking ambiguities, present structured prompt, wait for approval. Does **not** write code, brief, or plan yet. | Greenfield/plan/design/scaffold when hook routes `[route:prompt-refinement]` or user says "refine prompt". |
 | [project-intake](.cursor/skills/project-intake/SKILL.md) | Gather requirements before coding: infer repo + prompt, ask missing fields via `AskQuestion`, save approved brief to `plans/_briefs/*.brief.md`, then route to the right next skill. | Greenfield, new feature, plan/design/scaffold — when no brief exists yet. |
 | [implementation-plan](.cursor/skills/implementation-plan/SKILL.md) | Write an implementation plan from an approved brief (screen inventory, gap analysis, todos). Does **not** write app code. | "Create plan", "implementation plan" — **not** "implement the plan". |
 | [design-intake](.cursor/skills/design-intake/SKILL.md) | UI/design intake: aesthetic, theme, motion, component stack; produces `plans/design-*.plan.md`. | "Design", "mockup", "redesign", "build UI". |
@@ -194,6 +202,7 @@ Matched automatically from [registry.json](.cursor/skills/claude-skills-router/r
 
 | Skill | Triggers (examples) |
 |-------|---------------------|
+| prompt-refinement | prompt geliştir, refine prompt, netleştir |
 | project-intake | greenfield, sıfırdan, from scratch |
 | module-scaffolder | scaffold, yeni modül, new screen |
 | focused-fix | fix feature, uçtan uca, broken |
@@ -219,9 +228,17 @@ Not in the hook registry; invoke manually when needed:
 
 ## Typical workflow
 
-1. **Greenfield / new feature** → agent runs intake → `plans/_briefs/*.brief.md`
+1. **Greenfield / new feature** → prompt refinement (when enabled) → user approval → intake → `plans/_briefs/*.brief.md`
 2. **Plan** → `plans/features/*.plan.md` (approval before code)
 3. **Implement the plan** → code in your app; only plan `todos[].status` changes
+
+**Refinement is skipped when:**
+
+- You say `skip refinement` / `refinement atla`
+- You say `implement the plan` / `Planı uygula`
+- The task is a scoped bugfix or refactor
+- `intake.prompt_refinement: off` in config
+- The prompt is already detailed or marked refined
 
 **Intake is skipped when:**
 
@@ -232,9 +249,10 @@ Not in the hook registry; invoke manually when needed:
 
 **Example prompts:**
 
-- `Sıfırdan Next.js admin paneli planla`
-- `Planı uygula` (uses existing plan; skips intake)
-- `skip intake` (use config defaults only)
+- `Sıfırdan Next.js admin paneli planla` (refinement → intake → plan)
+- `prompt geliştir: e-ticaret admin paneli` (forces refinement when `on-request`)
+- `Planı uygula` (uses existing plan; skips refinement + intake)
+- `skip refinement` / `skip intake` (skip gates as named)
 
 ## Repository layout (this repo)
 
