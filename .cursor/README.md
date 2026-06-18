@@ -38,7 +38,7 @@ Legacy stubs (`cursor-guidelines.mdc`, `output-locale.mdc`, `project-config.mdc`
 | [config/](config/) | **Project defaults** + [project.intake-fields.yaml](config/project.intake-fields.yaml) (AskQuestion catalog) |
 | [rules/](rules/) | core.mdc (always-on), lazy intake workflow, quality standards |
 | [skills/](skills/) | Condensed workflow + specialist skills (~35 KB total; checklists over prose) |
-| [skills/claude-skills-router/registry.json](skills/claude-skills-router/registry.json) | Hook skill priority table |
+| [skills/skills-router/registry.json](skills/skills-router/registry.json) | Hook skill priority table |
 | [hooks/](hooks/) | Stack detect, task logging, unified route-work router |
 | [logs/](logs/) | Runtime `agent-activity.log` — task start/end timestamps + duration (gitignored) |
 | [plans/_briefs/](plans/_briefs/) | Approved brief files (`*.brief.md`) |

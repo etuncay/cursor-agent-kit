@@ -16,7 +16,7 @@ Yapı olmadan AI kod asistanları gereksinimleri atlar, planlama ile implementas
 - **Koddan önce yapılandırılmış intake** — [route-work.sh](.cursor/hooks/route-work.sh) greenfield/plan/tasarımda [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md)'i lazy yükler; repo sinyallerini çıkarır, yalnızca eksik alanları `AskQuestion` ile sorar, onaylı [brief'leri](.cursor/plans/_briefs/) kaydeder.
 - **Plan/implement ayrımı** — Implementasyon sırasında plan gövdesi salt okunur kalır; yalnızca `todos[].status` değişir ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Git'te takım standartları** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) locale, mimari, stack ve intake kurallarını tutar; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) AskQuestion kataloğunu tutar (yalnızca intake'ta okunur). Çözümleme sırası: **kullanıcı prompt'u → repo sinyalleri → config varsayılanları → AskQuestion**.
-- **Otomatik skill yönlendirme** — [route-work.sh](.cursor/hooks/route-work.sh) ve [registry.json](.cursor/skills/claude-skills-router/registry.json) niyeti eşleştirir (greenfield, tasarım, scaffold, API inceleme, secops vb.); her seferinde `@skill` yazmaya gerek kalmaz.
+- **Otomatik skill yönlendirme** — [route-work.sh](.cursor/hooks/route-work.sh) ve [registry.json](.cursor/skills/skills-router/registry.json) niyeti eşleştirir (greenfield, tasarım, scaffold, API inceleme, secops vb.); her seferinde `@skill` yazmaya gerek kalmaz.
 - **Davranış korkulukları** — Tek always-on kural [core.mdc](.cursor/rules/core.mdc) (~350 token); glob kurallar [quality-standards.mdc](.cursor/rules/quality-standards.mdc) yalnızca UI dosyalarında.
 - **Bağlam görünürlüğü** — Her prompt'ta ekranda hangi rule/skill'in aktif olduğu ve tahmini token yükü gösterilir ([route_engine.py](.cursor/hooks/lib/route_engine.py), [context-manifest.json](.cursor/config/context-manifest.json)).
 - **Yerleşik doğrulama** — [verification.md](.cursor/plans/_shared/verification.md) implement yolunda hook'lar tarafından referans alınır.
@@ -167,7 +167,7 @@ Kurulum ayrıca hedef projeye kardeş bir **`user_test/`** klasörü (ekran-test
 
 ## Dahil skill'ler
 
-Skill'ler, agent'a **belirli bir iş türünde nasıl davranacağını** öğreten talimat dosyalarıdır. [route-work.sh](.cursor/hooks/route-work.sh) [registry.json](.cursor/skills/claude-skills-router/registry.json) ile otomatik yönlendirir; istenirse `@skill-adı` ile manuel de çağrılır.
+Skill'ler, agent'a **belirli bir iş türünde nasıl davranacağını** öğreten talimat dosyalarıdır. [route-work.sh](.cursor/hooks/route-work.sh) [registry.json](.cursor/skills/skills-router/registry.json) ile otomatik yönlendirir; istenirse `@skill-adı` ile manuel de çağrılır.
 
 ### Ana iş akışı skill'leri
 
@@ -195,10 +195,15 @@ Belirli teknik alanlarda derin rehberlik. Prompt anahtar kelimeleri eşleşince 
 | [codebase-onboarding](.cursor/skills/codebase-onboarding/SKILL.md) | Repoyu analiz edip onboarding dökümanı: mimari, önemli dosyalar, local setup, katkı checklist'i. | Yeni geliştirici, "proje nasıl çalışıyor", mimari özet. |
 | [database-schema-designer](.cursor/skills/database-schema-designer/SKILL.md) | Veritabanı şeması: ERD, normalizasyon, migration (Drizzle/Prisma/TypeORM/Alembic), index, RLS, seed. | "ERD", "şema tasarla", "migration planla", tablo ilişkileri. |
 | [senior-secops](.cursor/skills/senior-secops/SKILL.md) | Uygulama güvenliği: SAST, OWASP Top 10, secret taraması, tehdit modeli, hardening, SOC2/PCI/HIPAA/GDPR. | Güvenlik taraması, pentest hazırlığı, zafiyet yönetimi. |
+| [skill-creator](.cursor/skills/skill-creator/SKILL.md) | Skill oluşturma, test ve iyileştirme: SKILL.md taslağı, eval, tetikleme benchmark, description optimizasyonu. | "skill oluştur", "skill eval", "skill optimize". |
+| [pdf-tools](.cursor/skills/pdf-tools/SKILL.md) | PDF birleştirme/bölme/çıkarma/şifreleme — `pypdf`, `pdfplumber` (açık kaynak). | `.pdf`, pdf birleştir, tablo çıkar. |
+| [xlsx-tools](.cursor/skills/xlsx-tools/SKILL.md) | Tablo okuma/yazma — `openpyxl`, `pandas`; Excel formülleri, hardcode değil. | `.xlsx`, excel, csv dönüşüm. |
+| [docx-tools](.cursor/skills/docx-tools/SKILL.md) | Word belgeleri — `python-docx`, `pandoc` (açık kaynak). | `.docx`, rapor, memo, mektup. |
+| [pptx-tools](.cursor/skills/pptx-tools/SKILL.md) | Sunumlar — `python-pptx` (açık kaynak). | `.pptx`, slides, sunum. |
 
 ### Hook tetikleyici ifadeleri
 
-[registry.json](.cursor/skills/claude-skills-router/registry.json) üzerinden otomatik eşleşir. İngilizce ve Türkçe desteklenir.
+[registry.json](.cursor/skills/skills-router/registry.json) üzerinden otomatik eşleşir. İngilizce ve Türkçe desteklenir.
 
 | Skill | Tetikleyiciler (örnek) |
 |-------|------------------------|
@@ -215,6 +220,11 @@ Belirli teknik alanlarda derin rehberlik. Prompt anahtar kelimeleri eşleşince 
 | database-schema-designer | ERD, schema migration |
 | senior-secops | security scan, pentest, hardening |
 | screen-test-protocol | ekran testi, screen test, smoke test |
+| skill-creator | skill oluştur, skill eval |
+| pdf-tools | .pdf, pdf birleştir |
+| xlsx-tools | .xlsx, excel, tablo |
+| docx-tools | .docx, word belgesi |
+| pptx-tools | .pptx, sunum, slides |
 
 ### @skill ile kullanılabilir
 
@@ -289,4 +299,4 @@ cd cursor-agent-kit && git pull
 
 ## Lisans
 
-MIT (gerekirse LICENSE dosyası ekleyin)
+[MIT](LICENSE)

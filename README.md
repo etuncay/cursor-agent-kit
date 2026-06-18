@@ -16,7 +16,7 @@ Without structure, AI coding assistants tend to skip requirements, mix planning 
 - **Structured intake before code** — [route-work.sh](.cursor/hooks/route-work.sh) lazy-loads [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md) on greenfield/plan/design; infer repo signals, ask only missing fields via `AskQuestion`, save approved [briefs](.cursor/plans/_briefs/).
 - **Plan/implement separation** — During implementation the plan body stays read-only; only `todos[].status` changes ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Team standards in git** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) holds locale, architecture, stack, and intake rules; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) holds the AskQuestion catalog (loaded on intake only). Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
-- **Automatic skill routing** — [route-work.sh](.cursor/hooks/route-work.sh) plus [registry.json](.cursor/skills/claude-skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, etc.) without typing `@skill` every time.
+- **Automatic skill routing** — [route-work.sh](.cursor/hooks/route-work.sh) plus [registry.json](.cursor/skills/skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, etc.) without typing `@skill` every time.
 - **Behavioral guardrails** — Single always-on rule [core.mdc](.cursor/rules/core.mdc) (~350 tokens); glob rules [quality-standards.mdc](.cursor/rules/quality-standards.mdc) apply on UI files only.
 - **Context visibility** — Each prompt shows active rules/skills and estimated token cost on screen ([route_engine.py](.cursor/hooks/lib/route_engine.py), [context-manifest.json](.cursor/config/context-manifest.json)).
 - **Verification built-in** — [verification.md](.cursor/plans/_shared/verification.md) is referenced on the implement path via hooks.
@@ -167,7 +167,7 @@ The installer also scaffolds a sibling **`user_test/`** folder (screen-test docs
 
 ## Included skills
 
-Skills are instruction files that tell the agent **how to behave** for a specific job type. [route-work.sh](.cursor/hooks/route-work.sh) auto-routes via [registry.json](.cursor/skills/claude-skills-router/registry.json); you can also invoke any skill manually with `@skill-name`.
+Skills are instruction files that tell the agent **how to behave** for a specific job type. [route-work.sh](.cursor/hooks/route-work.sh) auto-routes via [registry.json](.cursor/skills/skills-router/registry.json); you can also invoke any skill manually with `@skill-name`.
 
 ### Core workflow skills
 
@@ -195,10 +195,15 @@ Deep guidance for specific technical domains. Hook-routed when prompt keywords m
 | [codebase-onboarding](.cursor/skills/codebase-onboarding/SKILL.md) | Analyze repo and produce onboarding docs: architecture, key files, local setup, contribution checklist. | New engineer/contractor, "how does this repo work", architecture overview. |
 | [database-schema-designer](.cursor/skills/database-schema-designer/SKILL.md) | Database schema design: ERD, normalization, migrations (Drizzle/Prisma/TypeORM/Alembic), indexes, RLS, seed data. | "ERD", "schema design", "plan migration", table relationships. |
 | [senior-secops](.cursor/skills/senior-secops/SKILL.md) | Application security & SecOps: SAST, OWASP Top 10, secret scanning, threat modeling, hardening, SOC2/PCI/HIPAA/GDPR checks. | Security scan, pentest prep, vulnerability management, incident response. |
+| [skill-creator](.cursor/skills/skill-creator/SKILL.md) | Create, test, and improve agent skills: draft SKILL.md, run evals, benchmark triggering, optimize descriptions. | "Create skill", "skill eval", "optimize skill description". |
+| [pdf-tools](.cursor/skills/pdf-tools/SKILL.md) | PDF merge/split/extract/encrypt with `pypdf` and `pdfplumber` (open source). | `.pdf`, merge/split PDF, extract tables. |
+| [xlsx-tools](.cursor/skills/xlsx-tools/SKILL.md) | Spreadsheet read/write with `openpyxl` and `pandas`; Excel formulas, not hardcoded values. | `.xlsx`, Excel, CSV conversion. |
+| [docx-tools](.cursor/skills/docx-tools/SKILL.md) | Word documents with `python-docx` and `pandoc` (open source). | `.docx`, report, memo, letter. |
+| [pptx-tools](.cursor/skills/pptx-tools/SKILL.md) | Presentations with `python-pptx` (open source). | `.pptx`, slides, deck, sunum. |
 
 ### Hook trigger phrases
 
-Matched automatically from [registry.json](.cursor/skills/claude-skills-router/registry.json). Phrases support English and Turkish.
+Matched automatically from [registry.json](.cursor/skills/skills-router/registry.json). Phrases support English and Turkish.
 
 | Skill | Triggers (examples) |
 |-------|---------------------|
@@ -215,6 +220,11 @@ Matched automatically from [registry.json](.cursor/skills/claude-skills-router/r
 | database-schema-designer | ERD, schema migration |
 | senior-secops | security scan, pentest, hardening |
 | screen-test-protocol | ekran testi, screen test, smoke test |
+| skill-creator | create skill, skill eval, optimize skill |
+| pdf-tools | .pdf, merge pdf, split pdf |
+| xlsx-tools | .xlsx, excel, spreadsheet |
+| docx-tools | .docx, word doc, memo |
+| pptx-tools | .pptx, slides, presentation |
 
 ### Available via @skill
 
@@ -289,4 +299,4 @@ cd cursor-agent-kit && git pull
 
 ## License
 
-MIT (add LICENSE file if you need one)
+[MIT](LICENSE)
