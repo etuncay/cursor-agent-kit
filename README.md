@@ -173,10 +173,11 @@ Details: [config/README.md](.cursor/config/README.md)
 | `plans/features/` | Generated implementation plans |
 | `plans/_shared/` | Canonical options, locale, verification |
 | `plans/_templates/` | Brief, plan, and design templates |
+| `docs/` | Example prompts ([EN](.cursor/docs/example-prompts.md) · [TR](.cursor/docs/example-prompts.tr.md)) |
 
 The installer also scaffolds a sibling **`user_test/`** folder (screen-test docs + generic templates) into the target project; per-app docs are generated on demand and never clobbered on re-install.
 
-**Deep dive:** [.cursor/README.md](.cursor/README.md) (subagents, commands, delegation matrix) · [config/README.md](.cursor/config/README.md)
+**Deep dive:** [.cursor/README.md](.cursor/README.md) (subagents, commands, delegation matrix) · [config/README.md](.cursor/config/README.md) · [example prompts (EN)](.cursor/docs/example-prompts.md) · [örnek promptlar (TR)](.cursor/docs/example-prompts.tr.md)
 
 ## Subagents and slash commands
 
@@ -191,7 +192,7 @@ The installer also scaffolds a sibling **`user_test/`** folder (screen-test docs
 
 **Commands (17):** `/refine`, `/intake`, `/plan`, `/implement`, `/scaffold`, `/design`, `/fix`, `/screen-test`, `/handoff`, `/onboard`, `/audit-deps`, `/security`, `/api-review`, `/ci`, `/skip-intake`, `/skip-refine`, `/status`.
 
-Full tables and skill → subagent mapping: [.cursor/README.md](.cursor/README.md#subagents-and-commands).
+Full tables and skill → subagent mapping: [.cursor/README.md](.cursor/README.md#subagents-and-commands). **Example prompts:** [EN](.cursor/docs/example-prompts.md) · [TR](.cursor/docs/example-prompts.tr.md).
 
 ## Included skills
 

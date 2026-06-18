@@ -127,6 +127,7 @@ Last report also written to `.cursor/logs/last-context-report.txt` (gitignored).
 | [plans/features/](plans/features/) | Feature implementation plans (created on demand) |
 | [plans/_shared/](plans/_shared/) | Intake options, locale, verification |
 | [plans/_templates/](plans/_templates/) | Brief, plan, design templates |
+| [docs/](docs/) | Example prompts ([EN](docs/example-prompts.md) · [TR](docs/example-prompts.tr.md)) |
 
 ## Flow
 
@@ -141,7 +142,11 @@ Prompt → sessionStart ([Stack:signals])
 Slash → commands/*.md → same skills + explicit subagent orchestration
 ```
 
-## User prompt examples
+## Example prompts
+
+Copy-paste prompt cookbook (all layers): **[example-prompts.md](docs/example-prompts.md)** (English) · **[example-prompts.tr.md](docs/example-prompts.tr.md)** (Türkçe) — slash commands, natural-language skill triggers, subagents, rules, plans, hooks, and end-to-end scenarios.
+
+### Quick reference
 
 | Request | Expected behavior |
 |---------|-------------------|
@@ -200,6 +205,7 @@ chmod +x .cursor/hooks/*.sh
 
 ## Related files
 
+- **Example prompts:** [example-prompts.md](docs/example-prompts.md) · [example-prompts.tr.md](docs/example-prompts.tr.md)
 - **Subagents:** [agents/](agents/) — 11 custom agents (readonly + shell)
 - **Commands:** [commands/](commands/) — 17 slash workflows
 - **Skill router:** [skills/skills-router/registry.json](skills/skills-router/registry.json) — includes handoff, mcp-server-builder

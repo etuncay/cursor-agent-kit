@@ -164,10 +164,11 @@ Detaylar: [config/README.md](.cursor/config/README.md)
 | `plans/features/` | Üretilen implementasyon planları |
 | `plans/_shared/` | Kanonik seçenekler, locale, doğrulama |
 | `plans/_templates/` | Brief, plan ve tasarım şablonları |
+| `docs/` | Örnek promptlar ([EN](.cursor/docs/example-prompts.md) · [TR](.cursor/docs/example-prompts.tr.md)) |
 
 Kurulum ayrıca hedef projeye kardeş bir **`user_test/`** klasörü (ekran-testi dökümanları + generic şablonlar) iskeleter; app bazlı dökümanlar talep üzerine üretilir ve yeniden kurulumda üzerine yazılmaz.
 
-**Derinlemesine:** [.cursor/README.md](.cursor/README.md) (subagent'lar, command'lar, delegasyon matrisi) · [config/README.md](.cursor/config/README.md)
+**Derinlemesine:** [.cursor/README.md](.cursor/README.md) (subagent'lar, command'lar, delegasyon matrisi) · [config/README.md](.cursor/config/README.md) · [example prompts (EN)](.cursor/docs/example-prompts.md) · [örnek promptlar (TR)](.cursor/docs/example-prompts.tr.md)
 
 ## Subagent'lar ve slash command'lar
 
@@ -182,7 +183,7 @@ Kurulum ayrıca hedef projeye kardeş bir **`user_test/`** klasörü (ekran-test
 
 **Command'lar (17):** `/refine`, `/intake`, `/plan`, `/implement`, `/scaffold`, `/design`, `/fix`, `/screen-test`, `/handoff`, `/onboard`, `/audit-deps`, `/security`, `/api-review`, `/ci`, `/skip-intake`, `/skip-refine`, `/status`.
 
-Tam tablolar: [.cursor/README.md](.cursor/README.md#subagents-and-commands).
+Tam tablolar: [.cursor/README.md](.cursor/README.md#subagents-and-commands). **Örnek promptlar:** [EN](.cursor/docs/example-prompts.md) · [TR](.cursor/docs/example-prompts.tr.md).
 
 ## Dahil skill'ler
 
