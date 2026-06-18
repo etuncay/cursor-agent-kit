@@ -16,7 +16,9 @@ Yapı olmadan AI kod asistanları gereksinimleri atlar, planlama ile implementas
 - **Koddan önce yapılandırılmış intake** — [route-work.sh](.cursor/hooks/route-work.sh) greenfield/plan/tasarımda [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md)'i lazy yükler; repo sinyallerini çıkarır, yalnızca eksik alanları `AskQuestion` ile sorar, onaylı [brief'leri](.cursor/plans/_briefs/) kaydeder.
 - **Plan/implement ayrımı** — Implementasyon sırasında plan gövdesi salt okunur kalır; yalnızca `todos[].status` değişir ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Git'te takım standartları** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) locale, mimari, stack ve intake kurallarını tutar; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) AskQuestion kataloğunu tutar (yalnızca intake'ta okunur). Çözümleme sırası: **kullanıcı prompt'u → repo sinyalleri → config varsayılanları → AskQuestion**.
-- **Otomatik skill yönlendirme** — [route-work.sh](.cursor/hooks/route-work.sh) ve [registry.json](.cursor/skills/skills-router/registry.json) niyeti eşleştirir (greenfield, tasarım, scaffold, API inceleme, secops vb.); her seferinde `@skill` yazmaya gerek kalmaz.
+- **Otomatik skill yönlendirme** — [route-work.sh](.cursor/hooks/route-work.sh) ve [registry.json](.cursor/skills/skills-router/registry.json) niyeti eşleştirir (greenfield, tasarım, scaffold, API inceleme, secops, handoff, MCP sunucu vb.); her seferinde `@skill` yazmaya gerek kalmaz.
+- **Paralel subagent'lar** — [agents/](.cursor/agents/) altında 11 özel agent: repo keşfi, brief/plan doğrulama, bağımlılık izleme, güvenlik taraması, handoff artifact toplama — skill'lerdeki `## Subagent delegation` notlarına göre.
+- **Slash command'lar** — [commands/](.cursor/commands/) altında 17 `/` iş akışı (`/plan`, `/intake`, `/fix`, `/status`, …) hook yönlendirmesine ek olarak bilinçli manuel tetikleme.
 - **Davranış korkulukları** — Tek always-on kural [core.mdc](.cursor/rules/core.mdc) (~350 token); glob kurallar [quality-standards.mdc](.cursor/rules/quality-standards.mdc) yalnızca UI dosyalarında.
 - **Bağlam görünürlüğü** — Her prompt'ta ekranda hangi rule/skill'in aktif olduğu ve tahmini token yükü gösterilir ([route_engine.py](.cursor/hooks/lib/route_engine.py), [context-manifest.json](.cursor/config/context-manifest.json)).
 - **Yerleşik doğrulama** — [verification.md](.cursor/plans/_shared/verification.md) implement yolunda hook'lar tarafından referans alınır.
@@ -156,6 +158,8 @@ Detaylar: [config/README.md](.cursor/config/README.md)
 | `rules/*.mdc` | Lazy/glob kurallar (intake workflow, kalite, ekran testi) |
 | `hooks/` + `hooks.json` | sessionStart + beforeSubmitPrompt otomasyonu |
 | `skills/` | Özelleşmiş iş akışları (intake, plan, tasarım, scaffold, secops, …) |
+| `agents/` | Özel subagent'lar — paralel keşif, doğrulama, shell taraması (11) |
+| `commands/` | Slash command'lar — manuel iş akışı kısayolları (17) |
 | `plans/_briefs/` | Üretilen gereksinim brief'leri (proje bazlı) |
 | `plans/features/` | Üretilen implementasyon planları |
 | `plans/_shared/` | Kanonik seçenekler, locale, doğrulama |
@@ -163,7 +167,22 @@ Detaylar: [config/README.md](.cursor/config/README.md)
 
 Kurulum ayrıca hedef projeye kardeş bir **`user_test/`** klasörü (ekran-testi dökümanları + generic şablonlar) iskeleter; app bazlı dökümanlar talep üzerine üretilir ve yeniden kurulumda üzerine yazılmaz.
 
-**Derinlemesine:** [.cursor/README.md](.cursor/README.md) · [config/README.md](.cursor/config/README.md)
+**Derinlemesine:** [.cursor/README.md](.cursor/README.md) (subagent'lar, command'lar, delegasyon matrisi) · [config/README.md](.cursor/config/README.md)
+
+## Subagent'lar ve slash command'lar
+
+| Katman | Yol | Rol |
+|--------|-----|-----|
+| Hook'lar | [route_engine.py](.cursor/hooks/lib/route_engine.py) + [registry.json](.cursor/skills/skills-router/registry.json) | Deterministik intent + skill yönlendirme |
+| Skill'ler | [skills/](.cursor/skills/) | İş akışı; `## Subagent delegation` ne zaman yardımcı başlatılır |
+| Subagent'lar | [agents/](.cursor/agents/) | Paralel readonly veya shell işleri |
+| Command'lar | [commands/](.cursor/commands/) | Kullanıcı `/` kısayolları |
+
+**Subagent'lar (11):** `repo-explorer`, `brief-validator`, `plan-reviewer`, `dependency-tracer`, `route-mapper`, `command-validator`, `audit-runner`, `security-scanner`, `openapi-linter`, `schema-reviewer`, `artifact-collector`.
+
+**Command'lar (17):** `/refine`, `/intake`, `/plan`, `/implement`, `/scaffold`, `/design`, `/fix`, `/screen-test`, `/handoff`, `/onboard`, `/audit-deps`, `/security`, `/api-review`, `/ci`, `/skip-intake`, `/skip-refine`, `/status`.
+
+Tam tablolar: [.cursor/README.md](.cursor/README.md#subagents-and-commands).
 
 ## Dahil skill'ler
 
@@ -181,7 +200,9 @@ Skill'ler, agent'a **belirli bir iş türünde nasıl davranacağını** öğret
 | [design-intake](.cursor/skills/design-intake/SKILL.md) | UI/tasarım intake: estetik, tema, motion, component stack; `plans/design-*.plan.md` üretir. | "Tasarım", "mockup", "redesign", "UI oluştur". |
 | [module-scaffolder](.cursor/skills/module-scaffolder/SKILL.md) | Brief'e göre yeni modül/ekran iskeleti: stack'e uygun dosya ağacı (sayfa, route, CRUD form, API endpoint). | "Scaffold", "yeni modül", "yeni ekran", "feature ekle". |
 | [focused-fix](.cursor/skills/focused-fix/SKILL.md) | Kırık bir feature/modülü uçtan uca onarır — bağımlılık, log, test, config katmanlarını sistematik tarar. **Tek satırlık bug fix için değil.** | "X'i çalışır hale getir", "modül bozuk", "uçtan uca düzelt". |
-| [screen-test-protocol](.cursor/skills/screen-test-protocol/SKILL.md) | `cursor-ide-browser` ile smoke test (giriş, tıklama, form, CRUD) + `user_test/<app>/` altında ekran başına test dökümanı. | UI değişikliği sonrası, "ekran testi", "smoke test". |
+| [screen-test-protocol](.cursor/skills/screen-test-protocol/SKILL.md) | `cursor-ide-browser` ile smoke test + `user_test/<app>/` dökümanı. Browser öncesi `route-mapper` delegasyonu. | UI değişikliği, "ekran testi". |
+| [handoff](.cursor/skills/handoff/SKILL.md) | Oturumu handoff dökümanına sıkıştırır; `artifact-collector` delegasyonu. | "Devret", "oturumu bitir", `/handoff`. |
+| [mcp-server-builder](.cursor/skills/mcp-server-builder/SKILL.md) | OpenAPI'den MCP sunucusu. | "MCP server", "API'yi MCP olarak expose et". |
 
 ### Uzmanlık skill'leri
 
@@ -220,21 +241,33 @@ Belirli teknik alanlarda derin rehberlik. Prompt anahtar kelimeleri eşleşince 
 | database-schema-designer | ERD, schema migration |
 | senior-secops | security scan, pentest, hardening |
 | screen-test-protocol | ekran testi, screen test, smoke test |
+| handoff | hand this off, oturumu bitir, devret |
+| mcp-server-builder | mcp server, expose api as mcp |
 | skill-creator | skill oluştur, skill eval |
 | pdf-tools | .pdf, pdf birleştir |
 | xlsx-tools | .xlsx, excel, tablo |
 | docx-tools | .docx, word belgesi |
 | pptx-tools | .pptx, sunum, slides |
 
-### @skill ile kullanılabilir
+### Slash command'lar (manuel tetikleme)
+
+Chat'te `/komut` yazın. Tüm liste: [.cursor/README.md](.cursor/README.md#slash-commands-17).
+
+| Command | Amaç |
+|---------|------|
+| `/plan` | implementation-plan + repo-explorer + plan-reviewer |
+| `/intake` | project-intake + repo-explorer + brief-validator |
+| `/implement` | Plan uygula — gövde salt okunur |
+| `/fix` | focused-fix + dependency-tracer |
+| `/status` | Brief, plan, git, son bağlam raporu |
+
+### Yalnızca @skill ile
 
 Hook registry'sinde yok; gerektiğinde manuel çağırın:
 
 | Skill | Ne işe yarar |
 |-------|--------------|
-| [handoff](.cursor/skills/handoff/SKILL.md) | Oturumu handoff dökümanına sıkıştırır; secret redakte eder; mevcut brief/plan'lara referans verir (kopyalamaz). |
-| [mcp-server-builder](.cursor/skills/mcp-server-builder/SKILL.md) | OpenAPI'den production-ready MCP sunucusu (Python/TypeScript); REST API'yi typed agent tool olarak expose eder. |
-| [cursor-guidelines](.cursor/skills/cursor-guidelines/SKILL.md) | Stub hatırlatıcı — kanonik disiplin metni [core.mdc](.cursor/rules/core.mdc) içinde. |
+| [cursor-guidelines](.cursor/skills/cursor-guidelines/SKILL.md) | Stub — kanonik disiplin [core.mdc](.cursor/rules/core.mdc) içinde. |
 
 ## Tipik iş akışı
 

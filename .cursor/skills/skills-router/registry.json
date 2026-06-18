@@ -69,6 +69,18 @@
       "skillPath": ".cursor/skills/skill-creator/SKILL.md"
     },
     {
+      "id": "handoff",
+      "priority": 68,
+      "match": "hand this off|handoff doc|pick this up later|ending session|compact this conversation|oturumu bitir|devret",
+      "skillPath": ".cursor/skills/handoff/SKILL.md"
+    },
+    {
+      "id": "mcp-server-builder",
+      "priority": 67,
+      "match": "mcp server|model context protocol|openapi.*mcp|expose api as mcp",
+      "skillPath": ".cursor/skills/mcp-server-builder/SKILL.md"
+    },
+    {
       "id": "codebase-onboarding",
       "priority": 70,
       "match": "onboarding|codebase overview|architecture overview|repo nasıl çalışıyor|sistemi anlat|projeyi tanı",

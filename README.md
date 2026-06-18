@@ -16,7 +16,9 @@ Without structure, AI coding assistants tend to skip requirements, mix planning 
 - **Structured intake before code** — [route-work.sh](.cursor/hooks/route-work.sh) lazy-loads [project-intake/SKILL.md](.cursor/skills/project-intake/SKILL.md) on greenfield/plan/design; infer repo signals, ask only missing fields via `AskQuestion`, save approved [briefs](.cursor/plans/_briefs/).
 - **Plan/implement separation** — During implementation the plan body stays read-only; only `todos[].status` changes ([feature-plan.template.md](.cursor/plans/_templates/feature-plan.template.md)).
 - **Team standards in git** — [project.defaults.yaml](.cursor/config/project.defaults.yaml) holds locale, architecture, stack, and intake rules; [project.intake-fields.yaml](.cursor/config/project.intake-fields.yaml) holds the AskQuestion catalog (loaded on intake only). Resolution order: **user prompt → repo signals → config defaults → AskQuestion**.
-- **Automatic skill routing** — [route-work.sh](.cursor/hooks/route-work.sh) plus [registry.json](.cursor/skills/skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, etc.) without typing `@skill` every time.
+- **Automatic skill routing** — [route-work.sh](.cursor/hooks/route-work.sh) plus [registry.json](.cursor/skills/skills-router/registry.json) match intent (greenfield, design, scaffold, API review, secops, handoff, MCP server, etc.) without typing `@skill` every time.
+- **Parallel subagents** — Eleven custom agents in [agents/](.cursor/agents/) for repo exploration, brief/plan validation, dependency tracing, security scans, and handoff artifact collection — launched per skill `## Subagent delegation` notes.
+- **Slash commands** — Seventeen `/` workflows in [commands/](.cursor/commands/) (`/plan`, `/intake`, `/fix`, `/status`, …) for explicit manual orchestration alongside hook routing.
 - **Behavioral guardrails** — Single always-on rule [core.mdc](.cursor/rules/core.mdc) (~350 tokens); glob rules [quality-standards.mdc](.cursor/rules/quality-standards.mdc) apply on UI files only.
 - **Context visibility** — Each prompt shows active rules/skills and estimated token cost on screen ([route_engine.py](.cursor/hooks/lib/route_engine.py), [context-manifest.json](.cursor/config/context-manifest.json)).
 - **Verification built-in** — [verification.md](.cursor/plans/_shared/verification.md) is referenced on the implement path via hooks.
@@ -53,7 +55,16 @@ flowchart TD
   INT --> BRIEF
   BRIEF --> PLAN
   PLAN --> CODE
+  subgraph parallel [Parallel subagents]
+    SA[repo-explorer, brief-validator, …]
+  end
+  INT --> SA
+  PLAN --> SA
+  Slash["/plan, /intake, …"] --> INT
+  Slash --> PLAN
 ```
+
+Hooks select skills; skills delegate heavy exploration/validation to [subagents](.cursor/agents/). [Commands](.cursor/commands/) trigger the same flows manually.
 
 ### Hooks reference
 
@@ -156,6 +167,8 @@ Details: [config/README.md](.cursor/config/README.md)
 | `rules/*.mdc` | Lazy/glob rules (intake workflow, quality, screen tests) |
 | `hooks/` + `hooks.json` | sessionStart + beforeSubmitPrompt automation |
 | `skills/` | Specialized workflows (intake, plan, design, scaffold, secops, …) |
+| `agents/` | Custom subagents — parallel exploration, validation, shell scans (11) |
+| `commands/` | Slash commands — manual workflow shortcuts (17) |
 | `plans/_briefs/` | Generated requirement briefs (per project) |
 | `plans/features/` | Generated implementation plans |
 | `plans/_shared/` | Canonical options, locale, verification |
@@ -163,7 +176,22 @@ Details: [config/README.md](.cursor/config/README.md)
 
 The installer also scaffolds a sibling **`user_test/`** folder (screen-test docs + generic templates) into the target project; per-app docs are generated on demand and never clobbered on re-install.
 
-**Deep dive:** [.cursor/README.md](.cursor/README.md) · [config/README.md](.cursor/config/README.md)
+**Deep dive:** [.cursor/README.md](.cursor/README.md) (subagents, commands, delegation matrix) · [config/README.md](.cursor/config/README.md)
+
+## Subagents and slash commands
+
+| Layer | Path | Role |
+|-------|------|------|
+| Hooks | [route_engine.py](.cursor/hooks/lib/route_engine.py) + [registry.json](.cursor/skills/skills-router/registry.json) | Deterministic intent + skill routing |
+| Skills | [skills/](.cursor/skills/) | Workflow steps; `## Subagent delegation` when to launch helpers |
+| Subagents | [agents/](.cursor/agents/) | Parallel readonly or shell work (gap analysis, brief validation, audits) |
+| Commands | [commands/](.cursor/commands/) | User `/` shortcuts — same skills + explicit subagent steps |
+
+**Subagents (11):** `repo-explorer`, `brief-validator`, `plan-reviewer`, `dependency-tracer`, `route-mapper`, `command-validator`, `audit-runner`, `security-scanner`, `openapi-linter`, `schema-reviewer`, `artifact-collector`.
+
+**Commands (17):** `/refine`, `/intake`, `/plan`, `/implement`, `/scaffold`, `/design`, `/fix`, `/screen-test`, `/handoff`, `/onboard`, `/audit-deps`, `/security`, `/api-review`, `/ci`, `/skip-intake`, `/skip-refine`, `/status`.
+
+Full tables and skill → subagent mapping: [.cursor/README.md](.cursor/README.md#subagents-and-commands).
 
 ## Included skills
 
@@ -181,7 +209,9 @@ These drive the **refine → brief → plan → code** pipeline.
 | [design-intake](.cursor/skills/design-intake/SKILL.md) | UI/design intake: aesthetic, theme, motion, component stack; produces `plans/design-*.plan.md`. | "Design", "mockup", "redesign", "build UI". |
 | [module-scaffolder](.cursor/skills/module-scaffolder/SKILL.md) | Scaffold a new module/screen from brief: stack-aware file tree (pages, routes, CRUD forms, API endpoints). | "Scaffold", "new module", "new screen", "add feature". |
 | [focused-fix](.cursor/skills/focused-fix/SKILL.md) | Systematic end-to-end repair of a broken feature/module — trace dependencies, logs, tests, config across layers. **Not** for single-line bug fixes. | "Make X work", "fix the Y feature", "module is broken", "debug end-to-end". |
-| [screen-test-protocol](.cursor/skills/screen-test-protocol/SKILL.md) | Browser smoke tests via `cursor-ide-browser` (login, click, fill, CRUD) + per-screen Markdown docs under `user_test/<app>/`. | After UI changes, "screen test", "smoke test", "test docs". |
+| [screen-test-protocol](.cursor/skills/screen-test-protocol/SKILL.md) | Browser smoke tests via `cursor-ide-browser` (login, click, fill, CRUD) + per-screen Markdown docs under `user_test/<app>/`. Delegates `route-mapper` before browser tests. | After UI changes, "screen test", "smoke test", "test docs". |
+| [handoff](.cursor/skills/handoff/SKILL.md) | Compact session into handoff doc for next agent; redacts secrets; delegates `artifact-collector`. | "Hand this off", "pick this up later", `/handoff`. |
+| [mcp-server-builder](.cursor/skills/mcp-server-builder/SKILL.md) | Build MCP servers from OpenAPI (Python or TypeScript). | "MCP server", "expose API as MCP". |
 
 ### Specialist skills
 
@@ -220,20 +250,35 @@ Matched automatically from [registry.json](.cursor/skills/skills-router/registry
 | database-schema-designer | ERD, schema migration |
 | senior-secops | security scan, pentest, hardening |
 | screen-test-protocol | ekran testi, screen test, smoke test |
+| handoff | hand this off, handoff doc, oturumu bitir, devret |
+| mcp-server-builder | mcp server, expose api as mcp |
 | skill-creator | create skill, skill eval, optimize skill |
 | pdf-tools | .pdf, merge pdf, split pdf |
 | xlsx-tools | .xlsx, excel, spreadsheet |
 | docx-tools | .docx, word doc, memo |
 | pptx-tools | .pptx, slides, presentation |
 
-### Available via @skill
+### Slash commands (manual trigger)
+
+Use `/command` in chat when you want explicit orchestration (hooks still apply for natural prompts). See [commands/](.cursor/commands/).
+
+| Command | Purpose |
+|---------|---------|
+| `/plan` | implementation-plan + repo-explorer + plan-reviewer |
+| `/intake` | project-intake + repo-explorer + brief-validator |
+| `/implement` | Execute plan — body read-only, `todos[].status` only |
+| `/fix` | focused-fix + dependency-tracer |
+| `/handoff` | Session handoff doc + artifact-collector |
+| `/status` | Briefs, plans, git branch, last context report |
+
+All 17 commands: [.cursor/README.md](.cursor/README.md#slash-commands-17).
+
+### Available via @skill only
 
 Not in the hook registry; invoke manually when needed:
 
 | Skill | Purpose |
 |-------|---------|
-| [handoff](.cursor/skills/handoff/SKILL.md) | Compact the current conversation into a handoff doc for the next session; redacts secrets; references existing briefs/plans instead of duplicating them. |
-| [mcp-server-builder](.cursor/skills/mcp-server-builder/SKILL.md) | Build production-ready MCP servers from OpenAPI (Python or TypeScript); expose REST APIs as typed agent tools. |
 | [cursor-guidelines](.cursor/skills/cursor-guidelines/SKILL.md) | Stub reminder — canonical discipline text lives in [core.mdc](.cursor/rules/core.mdc). |
 
 ## Typical workflow
@@ -263,6 +308,9 @@ Not in the hook registry; invoke manually when needed:
 - `prompt geliştir: e-ticaret admin paneli` (forces refinement when `on-request`)
 - `Planı uygula` (uses existing plan; skips refinement + intake)
 - `skip refinement` / `skip intake` (skip gates as named)
+- `/plan` — create implementation plan with subagent gap analysis
+- `/status` — show briefs, plans, and last hook context report
+- `make auth work` / `uçtan uca` — focused-fix (not simple QUICK_FIX)
 
 ## Repository layout (this repo)
 
